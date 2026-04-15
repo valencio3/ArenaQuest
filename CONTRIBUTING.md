@@ -1,0 +1,178 @@
+# Contributing to ArenaQuest
+
+Thank you for your interest in contributing to ArenaQuest! This document describes the branch strategy, pull request process, commit conventions, and local development setup so every contributor starts from the same foundation.
+
+> **Language policy:** All code, comments, commit messages, branch names, and documentation **must be written in English**.
+
+---
+
+## 📋 Table of Contents
+
+- [Branch Strategy](#-branch-strategy)
+- [Workflow Overview](#-workflow-overview)
+- [Commit Convention](#-commit-convention)
+- [Pull Request Guidelines](#-pull-request-guidelines)
+- [Local Development Setup](#-local-development-setup)
+- [Code Style](#-code-style)
+- [Reporting Issues](#-reporting-issues)
+
+---
+
+## 🌿 Branch Strategy
+
+| Branch | Environment | Auto Deploy? |
+|---|---|---|
+| `main` | Production | ✅ Yes — after PR approval and merge |
+| `develop` | Staging / Preview | ✅ Yes — automatically on push |
+| `feature/*` | PR Preview | ✅ Yes — Cloudflare Pages Preview per PR |
+
+### Rules
+
+- **`main`** is the stable, production-ready branch. Direct pushes are **not allowed**. Changes land here only via a reviewed and approved Pull Request from `develop`.
+- **`develop`** is the integration branch. All completed features are merged here first and deployed to the staging environment automatically.
+- **`feature/*`** branches are short-lived and created from `develop`. They are merged back into `develop` via Pull Request.
+- **`hotfix/*`** branches may be cut from `main` for critical production fixes and merged back into both `main` and `develop`.
+
+---
+
+## 🔄 Workflow Overview
+
+```
+main ◄──────────────────── PR (after staging validation)
+  │
+develop ◄──────────────── PR (feature complete)
+  │
+feature/my-feature ◄───── your work here
+```
+
+### Step-by-step
+
+1. **Sync your local `develop`**
+   ```bash
+   git checkout develop
+   git pull origin develop
+   ```
+
+2. **Create a feature branch**
+   ```bash
+   git checkout -b feature/short-description
+   ```
+
+3. **Develop, commit, and push**
+   ```bash
+   git add .
+   git commit -m "feat(scope): short description"
+   git push origin feature/short-description
+   ```
+
+4. **Open a Pull Request** targeting `develop`.
+   - A Cloudflare Pages Preview URL will be generated automatically.
+   - Ensure all CI checks pass before requesting review.
+
+5. **After approval**, the branch is merged into `develop` via squash or merge commit.
+
+6. When `develop` is stable and validated in staging, a **release PR** is opened from `develop` → `main` and deployed to production after approval.
+
+---
+
+## ✍️ Commit Convention
+
+This project follows the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification.
+
+```
+<type>(<scope>): <short summary>
+```
+
+### Types
+
+| Type | When to use |
+|---|---|
+| `feat` | A new feature |
+| `fix` | A bug fix |
+| `docs` | Documentation changes only |
+| `style` | Formatting, missing semicolons, etc. (no logic change) |
+| `refactor` | Code change that neither fixes a bug nor adds a feature |
+| `test` | Adding or updating tests |
+| `chore` | Build process, tooling, or dependency updates |
+| `ci` | CI/CD configuration changes |
+
+### Scopes (examples)
+
+| Scope | Area |
+|---|---|
+| `web` | `apps/web` (Next.js front-end) |
+| `api` | `apps/api` (Cloudflare Workers) |
+| `shared` | `packages/shared` |
+| `infra` | Infrastructure and CI/CD |
+| `docs` | Documentation |
+
+### Examples
+
+```bash
+feat(api): add authentication middleware
+fix(web): correct scroll behavior on kyu page
+docs: update branch strategy in CONTRIBUTING.md
+chore(infra): upgrade wrangler to v4
+```
+
+---
+
+## 🔀 Pull Request Guidelines
+
+- **Target branch:** Always target `develop` (never `main` directly, except for hotfixes).
+- **Title:** Follow the commit convention format — `type(scope): description`.
+- **Description:** Explain *what* changed and *why*. Link related issues with `Closes #<issue-number>`.
+- **Size:** Keep PRs focused. Large PRs should be split into smaller, independent changes.
+- **Checks:** All CI checks (lint, build, tests) must pass before review.
+- **Reviews:** At least **one approval** is required before merging.
+
+---
+
+## 🛠️ Local Development Setup
+
+**Prerequisites:**
+- Node.js ≥ 20
+- pnpm ≥ 9
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/your-org/ArenaQuest.git
+cd ArenaQuest
+
+# 2. Install all dependencies
+make install
+
+# 3. Start all apps in development mode
+make dev
+
+# — or start apps individually —
+make dev-web   # Next.js at http://localhost:3000
+make dev-api   # Cloudflare Worker at http://localhost:8787
+```
+
+Run `make help` to see the full list of available commands.
+
+---
+
+## 🎨 Code Style
+
+- **TypeScript** is enforced across the entire monorepo.
+- **ESLint** is the linter — run `make lint` before opening a PR.
+- **Prettier** is used for formatting in `apps/api` (see `.prettierrc`).
+- Avoid commented-out code. Remove dead code before merging.
+- Write meaningful variable and function names — code is read more than it is written.
+
+---
+
+## 🐛 Reporting Issues
+
+Found a bug or have a feature request? [Open an issue](https://github.com/your-org/ArenaQuest/issues) and use the appropriate template:
+
+- 🐛 **Bug report** — describe the expected vs. actual behaviour, reproduction steps, and environment.
+- 💡 **Feature request** — describe the problem you are trying to solve and the proposed solution.
+
+---
+
+## 📄 License
+
+By contributing, you agree that your contributions will be licensed under the same [MIT License](LICENSE) that covers this project.
