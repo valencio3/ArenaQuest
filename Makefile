@@ -4,8 +4,10 @@
 # ==============================================================================
 
 .DEFAULT_GOAL := help
-.PHONY: help install dev dev-web dev-api build lint test test-api \
-        clean clean-cache cf-typegen deploy-api
+.PHONY: help install dev dev-web dev-api build build-web build-api \
+        lint lint-web lint-shared test test-api \
+        cf-typegen deploy-api deploy-web \
+        clean clean-cache clean-all
 
 # ── Colours ────────────────────────────────────────────────────────────────────
 CYAN  := \033[0;36m
@@ -62,6 +64,9 @@ lint: ## Lint all workspaces (Turborepo)
 lint-web: ## Lint only apps/web
 	pnpm --filter web lint
 
+lint-shared: ## Lint only packages/shared
+	pnpm --filter @arenaquest/shared lint
+
 # ==============================================================================
 # 🧪 TEST
 # ==============================================================================
@@ -80,6 +85,10 @@ cf-typegen: ## Regenerate Cloudflare Worker types (wrangler types)
 # ==============================================================================
 # 🚢 DEPLOY
 # ==============================================================================
+deploy-web: ## Build and deploy apps/web to Cloudflare Pages (requires CF_API_TOKEN + CF_ACCOUNT_ID)
+	pnpm turbo build --filter=web... && \
+	pnpm wrangler pages deploy apps/web/.next --project-name=arenaquest-web
+
 deploy-api: ## Deploy apps/api to Cloudflare Workers (production)
 	pnpm --filter api deploy
 

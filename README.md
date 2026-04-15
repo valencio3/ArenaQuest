@@ -115,6 +115,7 @@ A `Makefile` is provided at the root of the repository with convenient shortcuts
 | Command | Description |
 |---|---|
 | `make cf-typegen` | Regenerate Cloudflare Worker types (`wrangler types`) |
+| `make deploy-web` | Build and deploy `apps/web` to Cloudflare Pages |
 | `make deploy-api` | Deploy `apps/api` to Cloudflare Workers (production) |
 
 ### 🧹 Clean
@@ -124,6 +125,29 @@ A `Makefile` is provided at the root of the repository with convenient shortcuts
 | `make clean` | Remove build artefacts (`.next`, `dist`) from all apps |
 | `make clean-cache` | Remove Turborepo caches (`.turbo` directories) |
 | `make clean-all` | Remove build artefacts **and** Turborepo cache |
+
+---
+
+## 🚀 CI / CD & GitHub Secrets
+
+The following GitHub Actions workflows are defined in `.github/workflows/`:
+
+| Workflow | Trigger | Purpose |
+|---|---|---|
+| `ci.yml` | Push / PR → `main`, `develop` | Lint → Build → Test |
+| `deploy-web.yml` | Push → `main`, `develop` (when `apps/web/**` or `packages/shared/**` changes) | Build & deploy `apps/web` to Cloudflare Pages |
+| `deploy-api.yml` | Push → `main`, `develop` (when `apps/api/**` or `packages/shared/**` changes) | Build & deploy `apps/api` to Cloudflare Workers |
+
+### Required GitHub Secrets
+
+Go to **Settings → Secrets and variables → Actions** in your repository and add:
+
+| Secret | Description | Where to get it |
+|---|---|---|
+| `CF_API_TOKEN` | Cloudflare API token with **Cloudflare Pages — Edit** and **Workers Scripts — Edit** permissions | [Cloudflare Dashboard → My Profile → API Tokens](https://dash.cloudflare.com/profile/api-tokens) |
+| `CF_ACCOUNT_ID` | Your Cloudflare account ID | Cloudflare Dashboard → right sidebar on any zone page |
+
+> **Tip:** Create a scoped API token with only the permissions listed above — never use your Global API Key.
 
 ---
 
