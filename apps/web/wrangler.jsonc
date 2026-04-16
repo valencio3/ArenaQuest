@@ -1,12 +1,7 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "arenaquest-web",
-	"pages_build_output_dir": ".next",
+	"pages_build_output_dir": ".vercel/output/static",
 	"compatibility_date": "2026-04-14",
-	"compatibility_flags": ["nodejs_compat"],
-	"env": {
-		"staging": {
-			"name": "arenaquest-web-staging"
-		}
-	}
+	"compatibility_flags": ["nodejs_compat"]
 }

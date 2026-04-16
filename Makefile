@@ -86,12 +86,12 @@ cf-typegen: ## Regenerate Cloudflare Worker types (wrangler types)
 # 🚢 DEPLOY
 # ==============================================================================
 deploy-web: ## Build and deploy apps/web to Cloudflare Pages (Production)
-	pnpm turbo build --filter=web... && \
-	pnpm --filter web exec wrangler pages deploy .next --project-name=arenaquest-web
+	pnpm --filter web pages:build && \
+	pnpm --filter web exec wrangler pages deploy .vercel/output/static --project-name=arenaquest-web
 
 deploy-web-staging: ## Build and deploy apps/web to Cloudflare Pages (Staging)
-	pnpm turbo build --filter=web... && \
-	pnpm --filter web exec wrangler pages deploy .next --project-name=arenaquest-web-staging
+	pnpm --filter web pages:build && \
+	pnpm --filter web exec wrangler pages deploy .vercel/output/static --project-name=arenaquest-web-staging
 
 deploy-api: ## Deploy apps/api to Cloudflare Workers (Production)
 	pnpm --filter api deploy
@@ -102,9 +102,9 @@ deploy-api-staging: ## Deploy apps/api to Cloudflare Workers (Staging)
 # ==============================================================================
 # 🧹 CLEAN
 # ==============================================================================
-clean: ## Remove build artefacts (.next, dist) from all apps
+clean: ## Remove build artefacts (.next, .vercel, dist) from all apps
 	@echo "$(CYAN)Cleaning build artefacts...$(RESET)"
-	rm -rf apps/web/.next
+	rm -rf apps/web/.next apps/web/.vercel
 	rm -rf apps/api/dist
 	@echo "Done."
 
