@@ -11,12 +11,12 @@ on:
       - '.github/workflows/deploy-web.yml'
 
 jobs:
-  deploy:
-    name: Build & Deploy to Cloudflare Pages
+  # ────────────────────────────────────────────────────────────────────────────
+  # 1. Build — shared by both environments
+  # ────────────────────────────────────────────────────────────────────────────
+  build:
+    name: Build
     runs-on: ubuntu-latest
-
-    environment:
-      name: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
 
     steps:
       - name: Checkout Repository
@@ -38,7 +38,59 @@ jobs:
       - name: Build (web + dependencies)
         run: pnpm turbo build --filter=web...
 
-      - name: Deploy to Cloudflare Pages
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: apps/web/.next
+          retention-days: 1
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # 2. Deploy Staging — runs on both develop and main
+  # ────────────────────────────────────────────────────────────────────────────
+  deploy-staging:
+    name: Deploy to Staging
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: web-build
+          path: apps/web/.next
+
+      - name: Deploy to Cloudflare Pages (Staging)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CF_API_TOKEN }}
+          accountId: ${{ secrets.CF_ACCOUNT_ID }}
+          command: >
+            pages deploy apps/web/.next
+            --project-name=arenaquest-web-staging
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # 3. Deploy Production — runs only on main, requires manual approval
+  #    Configure "Required reviewers" in GitHub → Settings → Environments → production
+  # ────────────────────────────────────────────────────────────────────────────
+  deploy-production:
+    name: Deploy to Production
+    needs: deploy-staging
+    if: github.ref_name == 'main'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: web-build
+          path: apps/web/.next
+
+      - name: Deploy to Cloudflare Pages (Production)
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
@@ -46,4 +98,3 @@ jobs:
           command: >
             pages deploy apps/web/.next
             --project-name=arenaquest-web
-            ${{ github.ref_name != 'main' && format('--branch={0}', github.ref_name) || '' }}

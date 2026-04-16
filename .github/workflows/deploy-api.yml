@@ -11,12 +11,12 @@ on:
       - '.github/workflows/deploy-api.yml'
 
 jobs:
-  deploy:
-    name: Build & Deploy to Cloudflare Workers
+  # ────────────────────────────────────────────────────────────────────────────
+  # 1. Build — shared by both environments
+  # ────────────────────────────────────────────────────────────────────────────
+  build:
+    name: Build
     runs-on: ubuntu-latest
-
-    environment:
-      name: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
 
     steps:
       - name: Checkout Repository
@@ -38,20 +38,74 @@ jobs:
       - name: Build (api + dependencies)
         run: pnpm turbo build --filter=api...
 
-      - name: Deploy Worker (production)
-        if: github.ref_name == 'main'
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CF_API_TOKEN }}
-          accountId: ${{ secrets.CF_ACCOUNT_ID }}
-          workingDirectory: apps/api
-          command: deploy
+  # ────────────────────────────────────────────────────────────────────────────
+  # 2. Deploy Staging — runs on both develop and main
+  # ────────────────────────────────────────────────────────────────────────────
+  deploy-staging:
+    name: Deploy to Staging
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
 
-      - name: Deploy Worker (staging)
-        if: github.ref_name == 'develop'
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Deploy Worker (Staging)
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
           workingDirectory: apps/api
           command: deploy --env staging
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # 3. Deploy Production — runs only on main, requires manual approval
+  #    Configure "Required reviewers" in GitHub → Settings → Environments → production
+  # ────────────────────────────────────────────────────────────────────────────
+  deploy-production:
+    name: Deploy to Production
+    needs: deploy-staging
+    if: github.ref_name == 'main'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Deploy Worker (Production)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CF_API_TOKEN }}
+          accountId: ${{ secrets.CF_ACCOUNT_ID }}
+          workingDirectory: apps/api
+          command: deploy

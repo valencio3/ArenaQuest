@@ -85,12 +85,19 @@ cf-typegen: ## Regenerate Cloudflare Worker types (wrangler types)
 # ==============================================================================
 # 🚢 DEPLOY
 # ==============================================================================
-deploy-web: ## Build and deploy apps/web to Cloudflare Pages (requires CF_API_TOKEN + CF_ACCOUNT_ID)
+deploy-web: ## Build and deploy apps/web to Cloudflare Pages (Production)
 	pnpm turbo build --filter=web... && \
 	pnpm --filter web exec wrangler pages deploy .next --project-name=arenaquest-web
 
-deploy-api: ## Deploy apps/api to Cloudflare Workers (production)
+deploy-web-staging: ## Build and deploy apps/web to Cloudflare Pages (Staging)
+	pnpm turbo build --filter=web... && \
+	pnpm --filter web exec wrangler pages deploy .next --project-name=arenaquest-web-staging
+
+deploy-api: ## Deploy apps/api to Cloudflare Workers (Production)
 	pnpm --filter api deploy
+
+deploy-api-staging: ## Deploy apps/api to Cloudflare Workers (Staging)
+	pnpm --filter api deploy --env staging
 
 # ==============================================================================
 # 🧹 CLEAN
