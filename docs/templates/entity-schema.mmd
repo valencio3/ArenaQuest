@@ -1,0 +1,165 @@
+---
+title: Entity Schema
+config:
+    layout: elk
+---
+erDiagram
+    Role {
+        id string
+        name string
+        description string
+        createdAt Date
+    }
+
+    User {
+        id string
+        name string
+        email string
+        status UserStatus
+        roles Role
+        groups UserGroup
+        createdAt Date
+    }
+
+    Profile {
+        id string
+        user User
+        bio string
+        avatarUrl string
+        createdAt Date
+        updatedAt Date
+    }
+
+    UserGroup {
+        id string
+        name string
+        description string
+        users User
+        roles Role
+        createdAt Date
+    }
+
+    EnrollmentUser {
+        id string
+        user User
+        topicNode TopicNode
+        grantedAt Date
+        grantedBy User
+    }
+
+    EnrollmentUserGroup {
+        id string
+        userGroup UserGroup
+        topicNode TopicNode
+        grantedAt Date
+        grantedBy User
+    }
+
+    Media {
+        id string
+        url string
+        type string
+    }
+
+    Tag {
+        id string
+        name string
+        slug string
+    }
+
+    TopicNode {
+        id string
+        parentId TopicNode
+        title string
+        content string
+        status TopicNodeStatus
+        media Media
+        tags Tag
+        order number
+        estimatedMinutes number
+        prerequisiteIds string
+    }
+
+    Task {
+        id string
+        title string
+        description string
+        stages TaskStage
+        linkedTopic TopicNode
+    }
+
+    TaskStage {
+        id string
+        task Task
+        linkedTopic TopicNode
+        label string
+        order number
+    }
+
+    TopicProgress {
+        id string
+        user User
+        topicNode TopicNode
+        status ProgressStatus
+        completedAt Date
+        createdAt Date
+        updatedAt Date
+    }
+
+    TaskProgress {
+        id string
+        user User
+        task Task
+        currentStage TaskStage
+        status ProgressStatus
+        completedAt Date
+        updatedAt Date
+        createdAt Date
+    }
+
+    UserStatus {
+        ACTIVE string
+        INACTIVE string
+        PENDING string
+        BANNED string
+    }
+
+    TopicNodeStatus {
+        DRAFT string
+        PUBLISHED string
+        ARCHIVED string
+    }
+
+    ProgressStatus {
+        NOT_STARTED string
+        IN_PROGRESS string
+        COMPLETED string
+    }
+
+    User ||--|| UserStatus : "has_one_status"
+    User ||--o{ Role : "has_many_roles"
+    User ||--o{ UserGroup : "has_many_groups"
+    Profile ||--|| User : "has_one_user"
+    UserGroup ||--o{ User : "has_many_users"
+    UserGroup ||--o{ Role : "has_many_roles"
+    EnrollmentUser ||--|| User : "has_one_user"
+    EnrollmentUser ||--|| TopicNode : "has_one_topicNode"
+    EnrollmentUser ||--|| User : "has_one_grantedBy"
+    EnrollmentUserGroup ||--|| UserGroup : "has_one_userGroup"
+    EnrollmentUserGroup ||--|| TopicNode : "has_one_topicNode"
+    EnrollmentUserGroup ||--|| User : "has_one_grantedBy"
+    TopicNode ||--|| TopicNode : "has_one_parentId"
+    TopicNode ||--|| TopicNodeStatus : "has_one_status"
+    TopicNode ||--o{ Media : "has_many_media"
+    TopicNode ||--o{ Tag : "has_many_tags"
+    Task ||--o{ TaskStage : "has_many_stages"
+    Task ||--o{ TopicNode : "has_many_linkedTopic"
+    TaskStage ||--|| Task : "has_one_task"
+    TaskStage ||--o{ TopicNode : "has_many_linkedTopic"
+    TopicProgress ||--|| User : "has_one_user"
+    TopicProgress ||--|| TopicNode : "has_one_topicNode"
+    TopicProgress ||--|| ProgressStatus : "has_one_status"
+    TaskProgress ||--|| User : "has_one_user"
+    TaskProgress ||--|| Task : "has_one_task"
+    TaskProgress ||--|| TaskStage : "has_one_currentStage"
+    TaskProgress ||--|| ProgressStatus : "has_one_status"

@@ -11,6 +11,10 @@
     "dev": {
       "cache": false,
       "persistent": true
+    },
+    "docs:er": {
+      "inputs": ["packages/shared/types/**/*.ts", "docs/templates/entity-schema.mmd"],
+      "outputs": ["docs/entities.svg"]
     }
   }
 }

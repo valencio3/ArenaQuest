@@ -5,9 +5,14 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
-    "lint": "turbo run lint"
+    "lint": "turbo run lint",
+    "docs:er": "tsx docs/scripts/generate-mmd.ts && tsx docs/scripts/converte-mmd-to-svg.ts"
   },
   "devDependencies": {
+    "@mermaid-js/mermaid-cli": "^11.12.0",
+    "@types/node": "^20",
+    "ts-morph": "^28.0.0",
+    "tsx": "^4.21.0",
     "turbo": "latest"
   },
   "engines": {
