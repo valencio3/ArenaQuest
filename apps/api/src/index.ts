@@ -1,18 +1,41 @@
 /**
- * Welcome to Cloudflare Workers! This is your first worker.
+ * ArenaQuest — Cloudflare Worker entry point
  *
- * - Run `npm run dev` in your terminal to start a development server
- * - Open a browser tab at http://localhost:8787/ to see your worker in action
- * - Run `npm run deploy` to publish your worker
- *
- * Bind resources to your worker in `wrangler.jsonc`. After adding bindings, a type definition for the
- * `Env` object can be regenerated with `npm run cf-typegen`.
- *
- * Learn more at https://developers.cloudflare.com/workers/
+ * Phase 1: foundation scaffolding.
+ * The ports (IStorageAdapter, IDatabaseAdapter) are defined but concrete
+ * adapter implementations will be wired in Phase 2 via dependency injection.
  */
 
+import type { IDatabaseAdapter, IStorageAdapter } from '@arenaquest/shared/ports';
+
+// Extend the Cloudflare Worker Env with the adapter bindings.
+// Concrete implementations will be injected here once Phase 2 adapters exist.
+export interface AppEnv extends Env {
+  // Will be populated after Phase 2 adapter implementations are built.
+  // DB?: IDatabaseAdapter;
+  // STORAGE?: IStorageAdapter;
+}
+
 export default {
-	async fetch(request, env, ctx): Promise<Response> {
-		return new Response("Hello World!");
-	},
-} satisfies ExportedHandler<Env>;
+  async fetch(request: Request, env: AppEnv, ctx: ExecutionContext): Promise<Response> {
+    const url = new URL(request.url);
+
+    if (url.pathname === '/health') {
+      return Response.json({
+        status: 'ok',
+        phase: 1,
+        version: '0.1.0',
+        timestamp: new Date().toISOString(),
+        adapters: {
+          database: 'not_wired',  // pending Phase 2
+          storage: 'not_wired',   // pending Phase 2
+        },
+      });
+    }
+
+    return Response.json(
+      { error: 'Not Found', path: url.pathname },
+      { status: 404 },
+    );
+  },
+} satisfies ExportedHandler<AppEnv>;

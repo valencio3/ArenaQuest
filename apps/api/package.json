@@ -9,6 +9,9 @@
 		"test": "vitest",
 		"cf-typegen": "wrangler types"
 	},
+	"dependencies": {
+		"@arenaquest/shared": "workspace:*"
+	},
 	"devDependencies": {
 		"@cloudflare/vitest-pool-workers": "^0.12.4",
 		"@types/node": "^20",

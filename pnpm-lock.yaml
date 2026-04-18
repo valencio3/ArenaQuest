@@ -25,6 +25,10 @@ importers:
         version: 2.9.6
 
   apps/api:
+    dependencies:
+      '@arenaquest/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
     devDependencies:
       '@cloudflare/vitest-pool-workers':
         specifier: ^0.12.4

@@ -1,6 +1,6 @@
-namespace Entities {
+export namespace Entities {
 
-    namespace Config {
+    export namespace Config {
         export enum UserStatus {
             ACTIVE = 'active',
             INACTIVE = 'inactive',
@@ -21,15 +21,8 @@ namespace Entities {
         }
 
     }
-        
 
-    namespace Security {
-        /** 
-         * asdfkaljlkj
-         * asdlfjaslfdkj
-         * alksdflaksjd
-         * asdfaf
-         */
+    export namespace Security {
         export interface Role {
             id: string;
             name: string;
@@ -38,7 +31,7 @@ namespace Entities {
         }
     }
 
-    namespace Identity {
+    export namespace Identity {
         export interface User {
             id: string;
             name: string;
@@ -76,7 +69,7 @@ namespace Entities {
         }
 
         export interface EnrollmentUserGroup {
-            id: string;            
+            id: string;
             userGroup: UserGroup;
             topicNode: Content.TopicNode;
             grantedAt: Date;
@@ -84,7 +77,7 @@ namespace Entities {
         }
     }
 
-    namespace Content {
+    export namespace Content {
 
         export interface Media {
             id: string;
@@ -113,7 +106,7 @@ namespace Entities {
 
     }
 
-    namespace Engagement {
+    export namespace Engagement {
 
         export interface Task {
             id: string;
@@ -133,7 +126,7 @@ namespace Entities {
 
     }
 
-    namespace Progress {
+    export namespace Progress {
 
         export interface TopicProgress {
             id: string;
