@@ -11,8 +11,8 @@
 
 import type { D1Database } from '@cloudflare/workers-types';
 import type { IAuthAdapter, IUserRepository } from '@arenaquest/shared/ports';
-import { JwtAuthAdapter } from './adapters/auth';
-import { D1UserRepository } from './adapters/db/d1-user-repository';
+import { JwtAuthAdapter } from '@api/adapters/auth';
+import { D1UserRepository } from '@api/adapters/db/d1-user-repository';
 
 export interface AppEnv extends Env {
   /** HS256 signing secret for JWTs. Set with: wrangler secret put JWT_SECRET */

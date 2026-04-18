@@ -1,6 +1,6 @@
 import { env } from 'cloudflare:test';
 import { describe, it, expect, beforeAll } from 'vitest';
-import { D1UserRepository } from '../../src/adapters/db/d1-user-repository';
+import { D1UserRepository } from '@api/adapters/db/d1-user-repository';
 import { Entities } from '@arenaquest/shared/types/entities';
 
 // D1's exec() processes one statement at a time in the local simulator

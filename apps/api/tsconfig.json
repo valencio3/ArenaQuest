@@ -37,9 +37,13 @@
 		/* Skip type checking all .d.ts files. */
 		"skipLibCheck": true,
 		"types": [
+			"@cloudflare/workers-types/2023-07-01",
 			"./worker-configuration.d.ts",
 			"node"
-		]
+		],
+		"paths": {
+			"@api/*": ["./src/*"]
+		}
 	},
 	"exclude": ["test"],
 	"include": ["worker-configuration.d.ts", "src/**/*.ts"]

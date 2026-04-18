@@ -1,1 +1,1 @@
-export * from './jwt-auth-adapter';
+export * from '@api/adapters/auth/jwt-auth-adapter';
