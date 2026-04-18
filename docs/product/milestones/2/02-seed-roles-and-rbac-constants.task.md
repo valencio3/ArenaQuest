@@ -1,7 +1,7 @@
 # Task 02: Seed Roles & Define RBAC Constants
 
 ## Metadata
-- **Status:** Pending
+- **Status:** Done
 - **Complexity:** Low
 - **Milestone:** 2 — Authentication & User Management
 - **Dependencies:** `docs/product/milestones/2/01-implement-user-repository.task.md`
@@ -62,8 +62,8 @@ Add re-export of `ROLES` and `RoleName` so consumers import cleanly from `@arena
 - [x] `ROLES` constant and `RoleName` type exported from `@arenaquest/shared`.
 - [x] Seed migration file exists at `apps/api/migrations/0002_seed_roles.sql`.
 - [x] Applying the migration twice produces no error and no duplicate rows.
-- [ ] Unit test verifies that `ROLES` contains exactly 4 entries.
-- [ ] No string literals like `"admin"` appear in any `apps/api` source file — only
+- [x] Unit test verifies that `ROLES` contains exactly 4 entries.
+- [x] No string literals like `"admin"` appear in any `apps/api` source file — only
   `ROLES.ADMIN` references are allowed.
 
 ---
