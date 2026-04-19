@@ -24,7 +24,7 @@ export interface AppEnv extends Env {
   /** Cloudflare D1 database binding. Declared in wrangler.jsonc as "DB". */
   DB: D1Database;
   /** Allowed origin for CORS (e.g. http://localhost:3000). */
-  ALLOWED_ORIGIN?: string;
+  ALLOWED_ORIGIN: string;
   // STORAGE: R2Bucket;   // Phase 3
 }
 
