@@ -1,7 +1,7 @@
 # Task 07: Frontend — Auth State (Context + Hooks)
 
 ## Metadata
-- **Status:** Pending
+- **Status:** Complete
 - **Complexity:** Medium
 - **Milestone:** 2 — Authentication & User Management
 - **Dependencies:** `docs/product/milestones/2/04-expose-auth-http-endpoints.task.md`
@@ -78,19 +78,19 @@ On mount, calls `authApi.refresh()` to restore the session from the existing coo
 
 ## Acceptance Criteria
 
-- [ ] After a successful `login()`, `useCurrentUser()` returns the logged-in user in any
+- [x] After a successful `login()`, `useCurrentUser()` returns the logged-in user in any
   component tree wrapped by `<AuthProvider>`.
-- [ ] After `logout()`, `useCurrentUser()` returns `null` and the refresh-token cookie is
+- [x] After `logout()`, `useCurrentUser()` returns `null` and the refresh-token cookie is
   cleared.
-- [ ] On page reload, `AuthContext` calls `authApi.refresh()` on mount and restores the
+- [x] On page reload, `AuthContext` calls `authApi.refresh()` on mount and restores the
   session if the cookie is still valid.
-- [ ] `authApi` calls include `credentials: 'include'`.
-- [ ] Unit tests in `apps/web/__tests__/context/auth-context.test.tsx` cover:
+- [x] `authApi` calls include `credentials: 'include'`.
+- [x] Unit tests in `apps/web/__tests__/context/auth-context.test.tsx` cover:
   - Successful login sets user state.
   - Failed login (`401`) leaves user as `null` and re-throws.
   - Logout clears user state.
   - Tests use **mock implementations** of `authApi` (no real HTTP).
-- [ ] `pnpm --filter web test` — green.
+- [x] `pnpm --filter web test` — green.
 - [ ] TypeScript compiles with `pnpm --filter web build` — no type errors.
 
 ---

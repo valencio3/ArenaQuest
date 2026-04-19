@@ -75,6 +75,9 @@ lint-shared: ## Lint only packages/shared
 test: ## Run all tests
 	pnpm turbo run test
 
+test-web: ## Run apps/web tests (Vitest + JSDOM)
+	pnpm --filter web test
+
 test-api: ## Run apps/api tests (Vitest + Cloudflare Workers pool)
 	pnpm --filter api test
 

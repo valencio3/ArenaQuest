@@ -1,7 +1,7 @@
 # Task 08: Frontend — Login Page & Route Protection Middleware
 
 ## Metadata
-- **Status:** Pending
+- **Status:** Complete
 - **Complexity:** Medium
 - **Milestone:** 2 — Authentication & User Management
 - **Dependencies:** `docs/product/milestones/2/07-frontend-auth-context-and-hooks.task.md`
@@ -73,17 +73,17 @@ This is the client-side second line of defence (after the Edge middleware).
 
 ## Acceptance Criteria
 
-- [ ] Visiting `/dashboard` without a cookie redirects to `/login` (Edge middleware).
-- [ ] Visiting `/login` when already authenticated redirects to `/dashboard`.
-- [ ] Login form shows a validation error for empty fields (client-side).
-- [ ] Login form shows "Invalid email or password" on `401` from the API.
-- [ ] Successful login redirects to `/dashboard` and the user's name is visible in the nav.
-- [ ] Component tests in `apps/web/__tests__/app/(auth)/login.test.tsx` cover:
+- [x] Visiting `/dashboard` without a cookie redirects to `/login` (Edge middleware).
+- [x] Visiting `/login` when already authenticated redirects to `/dashboard`.
+- [x] Login form shows a validation error for empty fields (client-side).
+- [x] Login form shows "Invalid email or password" on `401` from the API.
+- [x] Successful login redirects to `/dashboard` and the user's name is visible in the nav.
+- [x] Component tests in `apps/web/__tests__/app/(auth)/login.test.tsx` cover:
   - Renders email/password fields.
   - Calls `useAuth().login()` on submit with correct arguments.
   - Displays error message on login failure.
   - Uses `jest-dom` matchers and React Testing Library.
-- [ ] `pnpm --filter web test` — green.
+- [x] `pnpm --filter web test` — green.
 
 ---
 

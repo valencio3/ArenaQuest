@@ -7,13 +7,17 @@
 		"dev": "wrangler dev",
 		"start": "wrangler dev",
 		"lint": "eslint .",
-		"test": "vitest",
+		"test": "vitest run",
+		"test:watch": "vitest",
 		"cf-typegen": "wrangler types"
 	},
 	"dependencies": {
-		"@arenaquest/shared": "workspace:*"
+		"@arenaquest/shared": "workspace:*",
+		"hono": "^4",
+		"zod": "^3"
 	},
 	"devDependencies": {
+		"@cloudflare/workers-types": "^4.20250224.0",
 		"@cloudflare/vitest-pool-workers": "^0.12.4",
 		"@types/node": "^20",
 		"typescript": "^5.5.2",

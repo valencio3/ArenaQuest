@@ -1,7 +1,7 @@
 # Task 03: Implement Auth Service (Login / Logout Business Logic)
 
 ## Metadata
-- **Status:** Pending
+- **Status:** Done
 - **Complexity:** Medium
 - **Milestone:** 2 — Authentication & User Management
 - **Dependencies:**
@@ -82,18 +82,18 @@ Concrete implementation of the port above.
 
 ## Acceptance Criteria
 
-- [ ] `AuthService.login()` returns `LoginResult` when credentials are valid.
-- [ ] `AuthService.login()` throws a typed `AuthError` (never leaks DB errors) when:
+- [x] `AuthService.login()` returns `LoginResult` when credentials are valid.
+- [x] `AuthService.login()` throws a typed `AuthError` (never leaks DB errors) when:
   - Email not found.
   - Password is incorrect.
-- [ ] `AuthService.logout()` deletes the refresh token row; subsequent calls with the same
+- [x] `AuthService.logout()` deletes the refresh token row; subsequent calls with the same
   token return `null`.
-- [ ] `AuthService.refreshTokens()` returns a new `LoginResult` for a valid, non-expired
+- [x] `AuthService.refreshTokens()` returns a new `LoginResult` for a valid, non-expired
   refresh token and invalidates the old one (token rotation).
-- [ ] Unit tests in `apps/api/test/core/auth/auth-service.spec.ts` cover all scenarios above
+- [x] Unit tests in `apps/api/test/core/auth/auth-service.spec.ts` cover all scenarios above
   using **mock implementations** of `IAuthAdapter`, `IUserRepository`, and
   `IRefreshTokenRepository` (no D1, no real crypto).
-- [ ] All tests pass: `pnpm --filter api test`.
+- [x] All tests pass: `pnpm --filter api test`.
 
 ---
 
