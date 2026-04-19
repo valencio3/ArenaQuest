@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@web/hooks/use-auth';
 import { Spinner } from '@web/components/spinner';
+import { Nav } from '@web/components/layout/nav';
 
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -25,5 +26,10 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
 
   if (user === null) return null;
 
-  return <>{children}</>;
+  return (
+    <div className="flex min-h-screen flex-col">
+      <Nav />
+      <div className="flex flex-1 flex-col">{children}</div>
+    </div>
+  );
 }
