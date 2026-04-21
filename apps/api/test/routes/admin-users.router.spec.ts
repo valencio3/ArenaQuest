@@ -1,7 +1,8 @@
 import { env, createExecutionContext, waitOnExecutionContext } from 'cloudflare:test';
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
 import worker, { type AppEnv } from '../../src/index';
 import { JwtAuthAdapter } from '@api/adapters/auth';
+import { sha256Hex } from '@api/adapters/db/hash';
 
 // ---------------------------------------------------------------------------
 // DB bootstrap
@@ -334,5 +335,175 @@ describe('DELETE /admin/users/:id', () => {
   it('returns 404 for an unknown id', async () => {
     const res = await req('DELETE', '/admin/users/does-not-exist', { token: adminToken });
     expect(res.status).toBe(404);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// S-02: refresh-token revocation on admin mutations
+// ---------------------------------------------------------------------------
+
+async function seedRefreshToken(userId: string, tokenValue: string): Promise<void> {
+  const tokenHash = await sha256Hex(tokenValue);
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  await env.DB
+    .prepare('INSERT INTO refresh_tokens (token, user_id, expires_at) VALUES (?, ?, ?)')
+    .bind(tokenHash, userId, expiresAt)
+    .run();
+}
+
+async function countTokensFor(userId: string): Promise<number> {
+  const row = await env.DB
+    .prepare('SELECT COUNT(*) AS n FROM refresh_tokens WHERE user_id = ?')
+    .bind(userId)
+    .first<{ n: number }>();
+  return row?.n ?? 0;
+}
+
+describe('Session revocation on admin mutations (S-02)', () => {
+  it('PATCH status=inactive revokes every refresh token for the user', async () => {
+    const createRes = await req('POST', '/admin/users', {
+      token: adminToken,
+      body: { name: 'Revoke Target', email: 'revoke-status@example.com', password: 'password123' },
+    });
+    const { id } = await createRes.json<{ id: string }>();
+
+    await seedRefreshToken(id, 'raw-token-status-a');
+    await seedRefreshToken(id, 'raw-token-status-b');
+    expect(await countTokensFor(id)).toBe(2);
+
+    const res = await req('PATCH', `/admin/users/${id}`, {
+      token: adminToken,
+      body: { status: 'inactive' },
+    });
+    expect(res.status).toBe(200);
+    expect(await countTokensFor(id)).toBe(0);
+  });
+
+  it('PATCH roles change revokes every refresh token for the user', async () => {
+    const createRes = await req('POST', '/admin/users', {
+      token: adminToken,
+      body: { name: 'Role Change Target', email: 'revoke-roles@example.com', password: 'password123' },
+    });
+    const { id } = await createRes.json<{ id: string }>();
+
+    await seedRefreshToken(id, 'raw-token-roles');
+    expect(await countTokensFor(id)).toBe(1);
+
+    const res = await req('PATCH', `/admin/users/${id}`, {
+      token: adminToken,
+      body: { roles: ['tutor'] },
+    });
+    expect(res.status).toBe(200);
+    expect(await countTokensFor(id)).toBe(0);
+  });
+
+  it('PATCH with only a name change does NOT revoke sessions', async () => {
+    const createRes = await req('POST', '/admin/users', {
+      token: adminToken,
+      body: { name: 'Name Only', email: 'revoke-name-only@example.com', password: 'password123' },
+    });
+    const { id } = await createRes.json<{ id: string }>();
+
+    await seedRefreshToken(id, 'raw-token-name-only');
+    expect(await countTokensFor(id)).toBe(1);
+
+    const res = await req('PATCH', `/admin/users/${id}`, {
+      token: adminToken,
+      body: { name: 'Name Only Renamed' },
+    });
+    expect(res.status).toBe(200);
+    expect(await countTokensFor(id)).toBe(1);
+  });
+
+  it('DELETE revokes every refresh token for the user', async () => {
+    const createRes = await req('POST', '/admin/users', {
+      token: adminToken,
+      body: { name: 'Delete Target', email: 'revoke-delete@example.com', password: 'password123' },
+    });
+    const { id } = await createRes.json<{ id: string }>();
+
+    await seedRefreshToken(id, 'raw-token-delete-a');
+    await seedRefreshToken(id, 'raw-token-delete-b');
+    expect(await countTokensFor(id)).toBe(2);
+
+    const res = await req('DELETE', `/admin/users/${id}`, { token: adminToken });
+    expect(res.status).toBe(204);
+    expect(await countTokensFor(id)).toBe(0);
+  });
+
+  it('POST /auth/refresh returns 401 after the user is deactivated', async () => {
+    // Create an active user with a known password so we can login through the router.
+    const createRes = await req('POST', '/admin/users', {
+      token: adminToken,
+      body: {
+        name: 'Refresh Victim',
+        email: 'refresh-victim@example.com',
+        password: 'password123',
+        roles: ['student'],
+      },
+    });
+    const { id } = await createRes.json<{ id: string }>();
+
+    const loginRes = await req('POST', '/auth/login', {
+      body: { email: 'refresh-victim@example.com', password: 'password123' },
+    });
+    expect(loginRes.status).toBe(200);
+    const setCookie = loginRes.headers.get('set-cookie') ?? '';
+    const match = setCookie.match(/refresh_token=([^;]+)/);
+    expect(match).not.toBeNull();
+    const refreshCookie = match![0];
+
+    // Admin deactivates the user.
+    const deactivateRes = await req('PATCH', `/admin/users/${id}`, {
+      token: adminToken,
+      body: { status: 'inactive' },
+    });
+    expect(deactivateRes.status).toBe(200);
+
+    // Refresh attempt with the pre-deactivation cookie must fail.
+    const refreshReq = new (Request as typeof globalThis.Request)(
+      'http://example.com/auth/refresh',
+      { method: 'POST', headers: { Cookie: refreshCookie } },
+    );
+    const ctx = createExecutionContext();
+    const refreshRes = await worker.fetch(refreshReq, env as AppEnv, ctx);
+    await waitOnExecutionContext(ctx);
+
+    expect(refreshRes.status).toBe(401);
+  });
+
+  it('emits an audit log line with { event, userId, actor, at } on revocation', async () => {
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+
+    const createRes = await req('POST', '/admin/users', {
+      token: adminToken,
+      body: { name: 'Audit Target', email: 'audit-revoke@example.com', password: 'password123' },
+    });
+    const { id } = await createRes.json<{ id: string }>();
+
+    const res = await req('PATCH', `/admin/users/${id}`, {
+      token: adminToken,
+      body: { status: 'inactive' },
+    });
+    expect(res.status).toBe(200);
+
+    const emitted = infoSpy.mock.calls
+      .map((args) => args[0])
+      .filter((arg): arg is string => typeof arg === 'string')
+      .map((line) => {
+        try { return JSON.parse(line) as Record<string, unknown>; }
+        catch { return null; }
+      })
+      .filter((obj): obj is Record<string, unknown> => obj !== null && obj.userId === id);
+
+    expect(emitted.length).toBeGreaterThan(0);
+    const entry = emitted[0];
+    expect(entry.event).toBe('user.sessions.revoked.deactivated');
+    expect(entry.userId).toBe(id);
+    expect(entry.actor).toBe(ADMIN_USER_ID);
+    expect(typeof entry.at).toBe('string');
+    expect(new Date(entry.at as string).toString()).not.toBe('Invalid Date');
+
+    infoSpy.mockRestore();
   });
 });

@@ -39,7 +39,13 @@ function buildApp(env: AppEnv): Hono {
 
   const app = new Hono();
 
-  AppRouter.register(app, { auth, users, authService, allowedOrigin: env.ALLOWED_ORIGIN });
+  AppRouter.register(app, {
+    auth,
+    users,
+    tokens,
+    authService,
+    allowedOrigin: env.ALLOWED_ORIGIN,
+  });
 
   return app;
 }

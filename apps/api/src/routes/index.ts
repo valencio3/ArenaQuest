@@ -4,7 +4,11 @@ import { buildAuthRouter } from './auth.router';
 import { buildAdminUsersRouter } from './admin-users.router';
 import { getHealth } from '@api/controllers/health.controller';
 import { authGuard } from '@api/middleware/auth-guard';
-import type { IAuthAdapter, IUserRepository } from '@arenaquest/shared/ports';
+import type {
+  IAuthAdapter,
+  IRefreshTokenRepository,
+  IUserRepository,
+} from '@arenaquest/shared/ports';
 import type { AuthService } from '@api/core/auth/auth-service';
 
 /**
@@ -23,11 +27,12 @@ export class AppRouter {
     deps: {
       auth: IAuthAdapter;
       users: IUserRepository;
+      tokens: IRefreshTokenRepository;
       authService: AuthService;
       allowedOrigin?: string;
     },
   ): void {
-    const { auth, users, authService, allowedOrigin } = deps;
+    const { auth, users, tokens, authService, allowedOrigin } = deps;
 
     // Enable CORS for frontend interaction
     app.use(
@@ -53,7 +58,7 @@ export class AppRouter {
 
     // Feature routes
     app.route('/auth', buildAuthRouter(authService));
-    app.route('/admin/users', buildAdminUsersRouter(users, auth));
+    app.route('/admin/users', buildAdminUsersRouter(users, auth, tokens));
 
     // Sanity demo — development only, can be removed post-milestone.
     app.get('/protected/ping', authGuard, (c) =>

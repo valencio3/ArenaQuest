@@ -3,8 +3,11 @@ import { z } from 'zod';
 import { authGuard } from '@api/middleware/auth-guard';
 import { requireRole } from '@api/middleware/require-role';
 import { ROLES } from '@arenaquest/shared/constants/roles';
-import type { IUserRepository } from '@arenaquest/shared/ports';
-import type { IAuthAdapter } from '@arenaquest/shared/ports';
+import type {
+  IAuthAdapter,
+  IRefreshTokenRepository,
+  IUserRepository,
+} from '@arenaquest/shared/ports';
 import { Entities } from '@arenaquest/shared/types/entities';
 
 // ---------------------------------------------------------------------------
@@ -28,10 +31,24 @@ const UpdateUserSchema = z.object({
 });
 
 // ---------------------------------------------------------------------------
+// Audit helper
+// ---------------------------------------------------------------------------
+
+function auditSessionRevocation(event: string, userId: string, actor: string) {
+  console.info(
+    JSON.stringify({ event, userId, actor, at: new Date().toISOString() }),
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Router
 // ---------------------------------------------------------------------------
 
-export function buildAdminUsersRouter(users: IUserRepository, auth: IAuthAdapter): Hono {
+export function buildAdminUsersRouter(
+  users: IUserRepository,
+  auth: IAuthAdapter,
+  tokens: IRefreshTokenRepository,
+): Hono {
   const router = new Hono();
 
   // Every admin endpoint requires a valid token with the admin role.
@@ -98,6 +115,20 @@ export function buildAdminUsersRouter(users: IUserRepository, auth: IAuthAdapter
       roleNames: roles,
     });
 
+    // S-02: revoke live refresh tokens whenever a change could shrink or
+    // redirect the user's privileges. Name-only edits are not risk-bearing.
+    const deactivated =
+      status !== undefined && status !== Entities.Config.UserStatus.ACTIVE;
+    const rolesChanged = roles !== undefined;
+    if (deactivated || rolesChanged) {
+      await tokens.deleteAllForUser(id);
+      auditSessionRevocation(
+        deactivated ? 'user.sessions.revoked.deactivated' : 'user.sessions.revoked.roles_changed',
+        id,
+        c.get('user').sub,
+      );
+    }
+
     return c.json(user);
   });
 
@@ -108,6 +139,9 @@ export function buildAdminUsersRouter(users: IUserRepository, auth: IAuthAdapter
     if (!existing) return c.json({ error: 'NotFound' }, 404);
 
     await users.update(id, { status: Entities.Config.UserStatus.INACTIVE });
+    await tokens.deleteAllForUser(id);
+    auditSessionRevocation('user.sessions.revoked.deleted', id, c.get('user').sub);
+
     return c.body(null, 204);
   });
 
