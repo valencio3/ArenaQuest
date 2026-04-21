@@ -10,10 +10,11 @@
  */
 
 import { Hono } from 'hono';
-import type { D1Database } from '@cloudflare/workers-types';
+import type { D1Database, KVNamespace } from '@cloudflare/workers-types';
 import { JwtAuthAdapter } from '@api/adapters/auth';
 import { D1UserRepository } from '@api/adapters/db/d1-user-repository';
 import { D1RefreshTokenRepository } from '@api/adapters/db/d1-refresh-token-repository';
+import { KvRateLimiter } from '@api/adapters/rate-limit/kv-rate-limiter';
 import { AuthService } from '@api/core/auth/auth-service';
 import { AppRouter } from '@api/routes';
 import '@api/types/hono-env';
@@ -25,6 +26,8 @@ export interface AppEnv extends Env {
   DB: D1Database;
   /** Allowed origin for CORS (e.g. http://localhost:3000). */
   ALLOWED_ORIGIN: string;
+  /** KV namespace used by `KvRateLimiter` to bucket login failures. */
+  RATE_LIMIT_KV: KVNamespace;
   // STORAGE: R2Bucket;   // Phase 3
 }
 
@@ -36,6 +39,7 @@ function buildApp(env: AppEnv): Hono {
   const users = new D1UserRepository(env.DB);
   const tokens = new D1RefreshTokenRepository(env.DB);
   const authService = new AuthService(auth, users, tokens);
+  const loginLimiter = new KvRateLimiter(env.RATE_LIMIT_KV);
 
   const app = new Hono();
 
@@ -44,6 +48,7 @@ function buildApp(env: AppEnv): Hono {
     users,
     tokens,
     authService,
+    loginLimiter,
     allowedOrigin: env.ALLOWED_ORIGIN,
   });
 

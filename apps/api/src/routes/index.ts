@@ -6,6 +6,7 @@ import { getHealth } from '@api/controllers/health.controller';
 import { authGuard } from '@api/middleware/auth-guard';
 import type {
   IAuthAdapter,
+  IRateLimiter,
   IRefreshTokenRepository,
   IUserRepository,
 } from '@arenaquest/shared/ports';
@@ -29,10 +30,11 @@ export class AppRouter {
       users: IUserRepository;
       tokens: IRefreshTokenRepository;
       authService: AuthService;
+      loginLimiter: IRateLimiter;
       allowedOrigin?: string;
     },
   ): void {
-    const { auth, users, tokens, authService, allowedOrigin } = deps;
+    const { auth, users, tokens, authService, loginLimiter, allowedOrigin } = deps;
 
     // Enable CORS for frontend interaction
     app.use(
@@ -57,7 +59,7 @@ export class AppRouter {
     );
 
     // Feature routes
-    app.route('/auth', buildAuthRouter(authService));
+    app.route('/auth', buildAuthRouter({ authService, loginLimiter }));
     app.route('/admin/users', buildAdminUsersRouter(users, auth, tokens));
 
     // Sanity demo — development only, can be removed post-milestone.

@@ -1,7 +1,7 @@
 # Task 04: `/auth/login` Rate Limiting & Lockout
 
 ## Metadata
-- **Status:** Pending
+- **Status:** Completed
 - **Complexity:** Medium
 - **Severity closed:** S-04 (Medium)
 - **Story:** [`auth-hardening.story.md`](./auth-hardening.story.md)
@@ -88,14 +88,14 @@ implementation to use in router tests without KV.
 
 ## Acceptance Criteria
 
-- [ ] `IRateLimiter` port exported from `@arenaquest/shared/ports`.
-- [ ] `KvRateLimiter` adapter implemented and compiles.
-- [ ] `wrangler.jsonc` declares `RATE_LIMIT_KV`.
-- [ ] `/auth/login` returns `429` with `Retry-After` header after 5 failures in 10 min.
-- [ ] Successful login within the window resets the counter.
-- [ ] Integration tests in `auth.router.spec.ts` cover lockout + reset.
-- [ ] If the limiter errors, a login still proceeds and an error is logged (fail-open).
-- [ ] `make lint` clean; all tests pass.
+- [x] `IRateLimiter` port exported from `@arenaquest/shared/ports`.
+- [x] `KvRateLimiter` adapter implemented and compiles.
+- [x] `wrangler.jsonc` declares `RATE_LIMIT_KV`.
+- [x] `/auth/login` returns `429` with `Retry-After` header after 5 failures in 10 min.
+- [x] Successful login within the window resets the counter.
+- [x] Integration tests in `auth.router.spec.ts` cover lockout + reset.
+- [x] If the limiter errors, a login still proceeds and an error is logged (fail-open).
+- [x] `make lint` clean; all tests pass.
 
 ---
 

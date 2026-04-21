@@ -27,6 +27,19 @@
 		}
 	],
 	/**
+	 * KV Namespaces
+	 * https://developers.cloudflare.com/kv/
+	 *
+	 * `RATE_LIMIT_KV` backs the login rate-limiter (S-04). Create the
+	 * production namespace with: `wrangler kv:namespace create RATE_LIMIT_KV`.
+	 */
+	"kv_namespaces": [
+		{
+			"binding": "RATE_LIMIT_KV",
+			"id": "rate_limit_kv_placeholder"
+		}
+	],
+	/**
 	 * Environments
 	 * https://developers.cloudflare.com/workers/wrangler/configuration/#environments
 	 *
@@ -42,6 +55,12 @@
 					"database_name": "arenaquest-db-staging",
 					"database_id": "6a2f5784-c57e-46ae-a858-27ca876f1dfe",
 					"migrations_dir": "migrations"
+				}
+			],
+			"kv_namespaces": [
+				{
+					"binding": "RATE_LIMIT_KV",
+					"id": "rate_limit_kv_staging_placeholder"
 				}
 			]
 		}
