@@ -1,7 +1,7 @@
 # Task 09: Adversarial Test Suite for `JwtAuthAdapter`
 
 ## Metadata
-- **Status:** Pending
+- **Status:** Completed
 - **Complexity:** Low
 - **Severity closed:** S-10 (Info) + coverage gap
 - **Story:** [`auth-hardening.story.md`](./auth-hardening.story.md)
@@ -85,13 +85,13 @@ milliseconds. Production defaults are covered elsewhere.
 
 ## Acceptance Criteria
 
-- [ ] `apps/api/test/adapters/auth/jwt-auth-adapter.spec.ts` exists and runs under
+- [x] `apps/api/test/adapters/auth/jwt-auth-adapter.spec.ts` exists and runs under
       `pnpm --filter api test`.
-- [ ] Every suite listed in §Scope has at least one passing test.
-- [ ] Test suite runs in under 1 second.
-- [ ] No flaky tests on three consecutive runs (`for i in 1 2 3; do pnpm --filter api test …; done`).
-- [ ] Coverage on `jwt-auth-adapter.ts` reaches ≥ 90 % (line).
-- [ ] `make lint` clean; all tests pass.
+- [x] Every suite listed in §Scope has at least one passing test.
+- [x] Test suite runs in under 1 second (339ms).
+- [x] No flaky tests on three consecutive runs.
+- [x] Coverage on `jwt-auth-adapter.ts` reaches ≥ 90 % (line).
+- [x] `make lint` clean; all tests pass.
 
 ---
 
