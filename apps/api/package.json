@@ -10,6 +10,7 @@
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"gen-hash": "tsx scripts/gen-hash.ts",
+		"check:no-dev-seed": "tsx scripts/check-no-dev-seed.ts",
 		"cf-typegen": "wrangler types"
 	},
 	"dependencies": {

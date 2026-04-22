@@ -107,10 +107,16 @@ deploy-web-staging: ## Build and deploy apps/web to Cloudflare Pages (Staging)
 	pnpm --filter web pages:build && \
 	pnpm --filter web exec wrangler pages deploy .vercel/output/static --project-name=arenaquest-web-staging
 
-deploy-api: ## Deploy apps/api to Cloudflare Workers (Production)
+check-no-dev-seed: ## Abort if the dev-seed password hash is present in the production DB (S-08)
+	pnpm --filter api run check:no-dev-seed -- --db arenaquest-db
+
+check-no-dev-seed-staging: ## Abort if the dev-seed password hash is present in the staging DB (S-08)
+	pnpm --filter api run check:no-dev-seed -- --db arenaquest-db-staging --env staging
+
+deploy-api: check-no-dev-seed ## Deploy apps/api to Cloudflare Workers (Production)
 	pnpm --filter api run deploy
 
-deploy-api-staging: ## Deploy apps/api to Cloudflare Workers (Staging)
+deploy-api-staging: check-no-dev-seed-staging ## Deploy apps/api to Cloudflare Workers (Staging)
 	pnpm --filter api run deploy --env staging
 
 create-db: ## Create a new D1 database
