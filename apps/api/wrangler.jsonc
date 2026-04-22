@@ -36,7 +36,7 @@
 	"kv_namespaces": [
 		{
 			"binding": "RATE_LIMIT_KV",
-			"id": "rate_limit_kv_placeholder"
+			"id": "c697147935024190ada81e743c3479d9"
 		}
 	],
 	/**
@@ -60,7 +60,7 @@
 			"kv_namespaces": [
 				{
 					"binding": "RATE_LIMIT_KV",
-					"id": "rate_limit_kv_staging_placeholder"
+					"id": "c697147935024190ada81e743c3479d9"
 				}
 			]
 		}

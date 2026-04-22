@@ -19,13 +19,18 @@
  *   2  Usage error or unexpected wrangler failure.
  */
 
-import { execSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 
-// The first 8 hex bytes of the known dev-seed password_hash are enough to
-// match exactly these rows while avoiding false positives on user-generated
-// hashes. Update this constant if the seed SQL ever changes.
+// Full prefix of the known dev-seed password_hash.
+// Used for exact startsWith() filtering in JS after the DB query.
 const DEV_PASSWORD_HASH_PREFIX =
   'pbkdf2:100000:e83835066ab015b5ed4449b68a349b38:8baf9add';
+
+// The LIKE pattern used in SQL is intentionally shorter than the full prefix.
+// The local D1 (miniflare/workerd SQLite) raises "LIKE or GLOB pattern too
+// complex" for long patterns, so we use the iteration count + salt prefix
+// (unique enough to the dev seed) and filter the exact prefix in JavaScript.
+const DEV_HASH_LIKE_PATTERN = 'pbkdf2:100000:e83835066ab015b5%';
 
 // ---------------------------------------------------------------------------
 // Argument parsing (no external deps)
@@ -65,38 +70,58 @@ function main() {
     args.db = args.env === 'staging' ? 'arenaquest-db-staging' : 'arenaquest-db';
   }
 
-  const remoteFlag = args.local ? '--local' : '--remote';
-  const envFlag = args.env ? `--env ${args.env}` : '';
+  const query = `SELECT email, password_hash FROM users WHERE password_hash LIKE '${DEV_HASH_LIKE_PATTERN}'`;
 
-  const query = `SELECT email FROM users WHERE password_hash LIKE '${DEV_PASSWORD_HASH_PREFIX}%'`;
-
-  const cmd = [
-    'pnpm exec wrangler d1 execute',
+  // Build the wrangler argument list directly (avoids shell quoting issues
+  // and lets spawnSync pipe stdout/stderr independently).
+  const wranglerArgs = [
+    'exec', 'wrangler', 'd1', 'execute',
     args.db,
-    remoteFlag,
-    envFlag,
+    args.local ? '--local' : '--remote',
     '--json',
-    `--command "${query}"`,
-  ]
-    .filter(Boolean)
-    .join(' ');
+    '--command', query,
+    ...(args.env ? ['--env', args.env] : []),
+  ];
 
-  let output: string;
-  try {
-    output = execSync(cmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    process.stderr.write(`[check-no-dev-seed] wrangler error:\n${msg}\n`);
+  const result = spawnSync('pnpm', wranglerArgs, {
+    encoding: 'utf8',
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
+
+  // Surface the real wrangler error (auth, unknown DB, network, etc.)
+  // before printing our own message.
+  if (result.error || result.status !== 0) {
+    const wranglerOutput = [result.stderr, result.stdout]
+      .map(s => s?.trim())
+      .filter(Boolean)
+      .join('\n');
+    if (wranglerOutput) {
+      process.stderr.write(`${wranglerOutput}\n`);
+    }
+    process.stderr.write(
+      `[check-no-dev-seed] wrangler failed (exit ${result.status ?? 'null'}) for database "${args.db}".\n` +
+      `Hints:\n` +
+      `  • \`wrangler whoami\`           — verify Cloudflare authentication\n` +
+      `  • \`make db-migrate-staging\`   — apply migrations to remote staging DB\n` +
+      `  • \`wrangler d1 migrations apply ${args.db} --remote\` — apply migrations manually\n`,
+    );
     process.exit(2);
   }
 
   let rows: Array<{ email: string }>;
   try {
     // wrangler --json returns an array of result sets; each has a `results` array.
-    const parsed = JSON.parse(output) as Array<{ results: Array<{ email: string }> }>;
-    rows = parsed.flatMap(r => r.results ?? []);
+    type Row = { email: string; password_hash: string };
+    const parsed = JSON.parse(result.stdout) as Array<{ results: Array<Row> }>;
+    // Exact-prefix filter in JS eliminates theoretical false positives from
+    // the intentionally shorter LIKE pattern used in the SQL query.
+    rows = parsed
+      .flatMap(r => r.results ?? [])
+      .filter(r => r.password_hash.startsWith(DEV_PASSWORD_HASH_PREFIX));
   } catch {
-    process.stderr.write(`[check-no-dev-seed] failed to parse wrangler output:\n${output}\n`);
+    process.stderr.write(
+      `[check-no-dev-seed] failed to parse wrangler output:\n${result.stdout}\n`,
+    );
     process.exit(2);
   }
 

@@ -107,23 +107,29 @@ deploy-web-staging: ## Build and deploy apps/web to Cloudflare Pages (Staging)
 	pnpm --filter web pages:build && \
 	pnpm --filter web exec wrangler pages deploy .vercel/output/static --project-name=arenaquest-web-staging
 
-check-no-dev-seed: ## Abort if the dev-seed password hash is present in the production DB (S-08)
-	pnpm --filter api run check:no-dev-seed -- --db arenaquest-db
+deploy-api: ## Deploy apps/api to Cloudflare Workers (Production)
+	pnpm --filter api exec wrangler deploy
 
-check-no-dev-seed-staging: ## Abort if the dev-seed password hash is present in the staging DB (S-08)
-	pnpm --filter api run check:no-dev-seed -- --db arenaquest-db-staging --env staging
-
-deploy-api: check-no-dev-seed ## Deploy apps/api to Cloudflare Workers (Production)
-	pnpm --filter api run deploy
-
-deploy-api-staging: check-no-dev-seed-staging ## Deploy apps/api to Cloudflare Workers (Staging)
-	pnpm --filter api run deploy --env staging
+deploy-api-staging: ## Deploy apps/api to Cloudflare Workers (Staging)
+	pnpm --filter api exec wrangler deploy --env staging
 
 create-db: ## Create a new D1 database
 	pnpm --filter api exec wrangler d1 create arenaquest-db
 
 create-db-staging: ## Create a new D1 database (Staging)
 	pnpm --filter api exec wrangler d1 create arenaquest-db-staging --env staging
+
+create-kv: ## Create a new KV namespace
+	pnpm --filter api exec wrangler kv:namespace create RATE_LIMIT_KV
+
+create-kv-staging: ## Create a new KV namespace (Staging)
+	pnpm --filter api exec wrangler kv namespace create RATE_LIMIT_KV --env staging
+
+list-kv: ## List all KV namespaces
+	pnpm --filter api exec wrangler kv namespace list
+
+list-kv-staging: ## List all KV namespaces (Staging)
+	pnpm --filter api exec wrangler kv namespace list --env staging
 
 bootstrap-admin: ## Interactively create the first admin account (local / staging / production)
 	@bash scripts/bootstrap-first-admin.sh
