@@ -14,6 +14,9 @@
 	"compatibility_flags": [
 		"nodejs_compat"
 	],
+	"vars": {
+		"ALLOWED_ORIGINS": "https://*.arenaquest-web.pages.dev"
+	},
 	/**
 	 * D1 Databases
 	 * https://developers.cloudflare.com/d1/get-started/
@@ -62,7 +65,10 @@
 					"binding": "RATE_LIMIT_KV",
 					"id": "c697147935024190ada81e743c3479d9"
 				}
-			]
+			],
+			"vars": {
+				"ALLOWED_ORIGINS": "https://29185798.arenaquest-web-staging.pages.dev,https://*.arenaquest-web-staging.pages.dev"
+			}
 		}
 	}
 }

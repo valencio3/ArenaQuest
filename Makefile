@@ -100,11 +100,11 @@ db-migrate-staging: ## Apply all D1 migrations to remote staging DB (arenaquest-
 # 🚢 DEPLOY
 # ==============================================================================
 deploy-web: ## Build and deploy apps/web to Cloudflare Pages (Production)
-	pnpm --filter web pages:build && \
+	NEXT_PUBLIC_API_URL="https://api.raphael-1d2.workers.dev" pnpm --filter web pages:build && \
 	pnpm --filter web exec wrangler pages deploy .vercel/output/static --project-name=arenaquest-web
 
 deploy-web-staging: ## Build and deploy apps/web to Cloudflare Pages (Staging)
-	pnpm --filter web pages:build && \
+	NEXT_PUBLIC_API_URL="https://api-staging.raphael-1d2.workers.dev" pnpm --filter web pages:build && \
 	pnpm --filter web exec wrangler pages deploy .vercel/output/static --project-name=arenaquest-web-staging
 
 deploy-api: ## Deploy apps/api to Cloudflare Workers (Production)

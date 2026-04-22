@@ -1,4 +1,4 @@
-import type { D1Database } from '@cloudflare/workers-types';
+
 import type { IRefreshTokenRepository } from '@arenaquest/shared/ports';
 import { sha256Hex } from './hash';
 

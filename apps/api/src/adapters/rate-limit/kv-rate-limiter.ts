@@ -1,4 +1,4 @@
-import type { KVNamespace } from '@cloudflare/workers-types';
+
 import type { IRateLimiter, RateLimitResult } from '@arenaquest/shared/ports';
 
 export interface KvRateLimiterConfig {

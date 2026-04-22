@@ -31,16 +31,16 @@ export class AppRouter {
       tokens: IRefreshTokenRepository;
       authService: AuthService;
       loginLimiter: IRateLimiter;
-      allowedOrigin?: string;
+      allowedOrigins?: string;
     },
   ): void {
-    const { auth, users, tokens, authService, loginLimiter, allowedOrigin } = deps;
+    const { auth, users, tokens, authService, loginLimiter, allowedOrigins } = deps;
 
     // Enable CORS for frontend interaction
     app.use(
       '*',
       cors({
-        origin: allowedOrigin ?? 'http://localhost:3000',
+        origin: allowedOrigins?.split(',') ?? 'http://localhost:3000',
         allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
         allowHeaders: ['Content-Type', 'Authorization'],
         credentials: true,
