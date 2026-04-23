@@ -12,6 +12,7 @@ import type {
   IUserRepository,
   ITopicNodeRepository,
   ITagRepository,
+  IMediaRepository,
 } from '@arenaquest/shared/ports';
 import type { AuthService } from '@api/core/auth/auth-service';
 
@@ -34,6 +35,7 @@ export class AppRouter {
       tokens: IRefreshTokenRepository;
       topics: ITopicNodeRepository;
       tags: ITagRepository;
+      media: IMediaRepository;
       authService: AuthService;
       loginLimiter: IRateLimiter;
       cookieSameSite: CookieSameSite;

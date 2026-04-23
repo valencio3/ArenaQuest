@@ -16,6 +16,7 @@ import { D1UserRepository } from '@api/adapters/db/d1-user-repository';
 import { D1RefreshTokenRepository } from '@api/adapters/db/d1-refresh-token-repository';
 import { D1TopicNodeRepository } from '@api/adapters/db/d1-topic-node-repository';
 import { D1TagRepository } from '@api/adapters/db/d1-tag-repository';
+import { D1MediaRepository } from '@api/adapters/db/d1-media-repository';
 import { KvRateLimiter } from '@api/adapters/rate-limit/kv-rate-limiter';
 import { AuthService } from '@api/core/auth/auth-service';
 import { AppRouter } from '@api/routes';
@@ -33,6 +34,7 @@ function buildApp(env: AppEnv): Hono {
   const tokens = new D1RefreshTokenRepository(env.DB);
   const topics = new D1TopicNodeRepository(env.DB);
   const tags = new D1TagRepository(env.DB);
+  const media = new D1MediaRepository(env.DB);
   const authService = new AuthService(auth, users, tokens);
   const loginLimiter = new KvRateLimiter(env.RATE_LIMIT_KV);
 
@@ -44,6 +46,7 @@ function buildApp(env: AppEnv): Hono {
     tokens,
     topics,
     tags,
+    media,
     authService,
     loginLimiter,
     cookieSameSite: parseCookieSameSite(env.COOKIE_SAMESITE),
