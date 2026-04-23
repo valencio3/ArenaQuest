@@ -17,6 +17,7 @@ import { D1RefreshTokenRepository } from '@api/adapters/db/d1-refresh-token-repo
 import { KvRateLimiter } from '@api/adapters/rate-limit/kv-rate-limiter';
 import { AuthService } from '@api/core/auth/auth-service';
 import { AppRouter } from '@api/routes';
+import { parseCookieSameSite } from '@api/routes/auth.router';
 import '@api/types/hono-env';
 
 export type AppEnv = Env;
@@ -39,6 +40,7 @@ function buildApp(env: AppEnv): Hono {
     tokens,
     authService,
     loginLimiter,
+    cookieSameSite: parseCookieSameSite(env.COOKIE_SAMESITE),
     allowedOrigins: env.ALLOWED_ORIGINS,
   });
 

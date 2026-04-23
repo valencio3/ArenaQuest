@@ -7,9 +7,37 @@ import type { IRateLimiter } from '@arenaquest/shared/ports';
 const COOKIE_NAME = 'refresh_token';
 const COOKIE_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
+/**
+ * Accepted values for the `SameSite` cookie attribute.
+ * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie#samesitesamesite-value
+ */
+export type CookieSameSite = 'Strict' | 'Lax' | 'None';
+
+/**
+ * Parse and validate the COOKIE_SAMESITE env var.
+ * Returns a type-safe SameSite value, defaulting to `'None'` when the
+ * input is empty or unrecognised (logs a warning for the latter).
+ */
+export function parseCookieSameSite(raw: string | undefined): CookieSameSite {
+  if (!raw || raw.trim() === '') return 'None';
+
+  const normalised =
+    raw.trim().charAt(0).toUpperCase() + raw.trim().slice(1).toLowerCase();
+
+  if (normalised === 'Strict' || normalised === 'Lax' || normalised === 'None') {
+    return normalised;
+  }
+
+  console.warn(
+    `[cookie] Unknown COOKIE_SAMESITE value "${raw}", falling back to "None"`,
+  );
+  return 'None';
+}
+
 export interface AuthRouterDeps {
   authService: AuthService;
   loginLimiter: IRateLimiter;
+  cookieSameSite: CookieSameSite;
 }
 
 /**
@@ -27,7 +55,7 @@ function extractIp(header: string | undefined): string {
 }
 
 export function buildAuthRouter(deps: AuthRouterDeps): Hono {
-  const { authService, loginLimiter } = deps;
+  const { authService, loginLimiter, cookieSameSite } = deps;
   const controller = new AuthController(authService);
   const router = new Hono();
 
@@ -73,7 +101,7 @@ export function buildAuthRouter(deps: AuthRouterDeps): Hono {
     setCookie(c, COOKIE_NAME, result.data.refreshToken, {
       httpOnly: true,
       secure: true,
-      sameSite: 'Strict',
+      sameSite: cookieSameSite,
       maxAge: COOKIE_TTL_SECONDS,
       path: '/',
     });
@@ -100,7 +128,7 @@ export function buildAuthRouter(deps: AuthRouterDeps): Hono {
     setCookie(c, COOKIE_NAME, result.data.refreshToken, {
       httpOnly: true,
       secure: true,
-      sameSite: 'Strict',
+      sameSite: cookieSameSite,
       maxAge: COOKIE_TTL_SECONDS,
       path: '/',
     });

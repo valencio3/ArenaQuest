@@ -15,7 +15,8 @@
 		"nodejs_compat"
 	],
 	"vars": {
-		"ALLOWED_ORIGINS": "https://*.arenaquest-web.pages.dev"
+		"ALLOWED_ORIGINS": "https://*.arenaquest-web.pages.dev",
+		"COOKIE_SAMESITE": "Strict"
 	},
 	/**
 	 * D1 Databases
@@ -67,7 +68,8 @@
 				}
 			],
 			"vars": {
-				"ALLOWED_ORIGINS": "https://c2ee7644.arenaquest-web-staging.pages.dev"
+				"ALLOWED_ORIGINS": "https://c2ee7644.arenaquest-web-staging.pages.dev",
+				"COOKIE_SAMESITE": "None"
 			}
 		}
 	}

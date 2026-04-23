@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { buildAuthRouter } from './auth.router';
+import type { CookieSameSite } from './auth.router';
 import { buildAdminUsersRouter } from './admin-users.router';
 import { getHealth } from '@api/controllers/health.controller';
 import { authGuard } from '@api/middleware/auth-guard';
@@ -31,10 +32,11 @@ export class AppRouter {
       tokens: IRefreshTokenRepository;
       authService: AuthService;
       loginLimiter: IRateLimiter;
+      cookieSameSite: CookieSameSite;
       allowedOrigins?: string;
     },
   ): void {
-    const { auth, users, tokens, authService, loginLimiter, allowedOrigins } = deps;
+    const { auth, users, tokens, authService, loginLimiter, cookieSameSite, allowedOrigins } = deps;
 
     // Enable CORS for frontend interaction
     app.use(
@@ -59,7 +61,7 @@ export class AppRouter {
     );
 
     // Feature routes
-    app.route('/auth', buildAuthRouter({ authService, loginLimiter }));
+    app.route('/auth', buildAuthRouter({ authService, loginLimiter, cookieSameSite }));
     app.route('/admin/users', buildAdminUsersRouter(users, auth, tokens));
 
     // Sanity demo — development only, can be removed post-milestone.
