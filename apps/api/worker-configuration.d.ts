@@ -8,16 +8,14 @@ declare namespace Cloudflare {
 	interface StagingEnv {
 		RATE_LIMIT_KV: KVNamespace;
 		DB: D1Database;
-		ALLOWED_ORIGINS: "https://29185798.arenaquest-web-staging.pages.dev,https://*.arenaquest-web-staging.pages.dev";
+		ALLOWED_ORIGINS: string;
 		JWT_SECRET: string;
-		ALLOWED_ORIGIN: string;
 	}
 	interface Env {
 		RATE_LIMIT_KV: KVNamespace;
 		DB: D1Database;
-		ALLOWED_ORIGINS: "https://29185798.arenaquest-web-staging.pages.dev,https://*.arenaquest-web-staging.pages.dev" | "https://*.arenaquest-web.pages.dev";
+		ALLOWED_ORIGINS: string;
 		JWT_SECRET: string;
-		ALLOWED_ORIGIN: string;
 	}
 }
 interface Env extends Cloudflare.Env {}
