@@ -1,0 +1,72 @@
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { buildAuthRouter } from './auth.router';
+import type { CookieSameSite } from './auth.router';
+import { buildAdminUsersRouter } from './admin-users.router';
+import { getHealth } from '@api/controllers/health.controller';
+import { authGuard } from '@api/middleware/auth-guard';
+import type {
+  IAuthAdapter,
+  IRateLimiter,
+  IRefreshTokenRepository,
+  IUserRepository,
+} from '@arenaquest/shared/ports';
+import type { AuthService } from '@api/core/auth/auth-service';
+
+/**
+ * Main application router configuration.
+ * Decouples route registration from the worker entry point.
+ */
+export class AppRouter {
+  /**
+   * Registers all application routes and common middleware.
+   *
+   * @param app - The main Hono application instance.
+   * @param deps - Object containing the required services and adapters.
+   */
+  static register(
+    app: Hono,
+    deps: {
+      auth: IAuthAdapter;
+      users: IUserRepository;
+      tokens: IRefreshTokenRepository;
+      authService: AuthService;
+      loginLimiter: IRateLimiter;
+      cookieSameSite: CookieSameSite;
+      allowedOrigins?: string;
+    },
+  ): void {
+    const { auth, users, tokens, authService, loginLimiter, cookieSameSite, allowedOrigins } = deps;
+
+    // Enable CORS for frontend interaction
+    app.use(
+      '*',
+      cors({
+        origin: allowedOrigins?.split(',') ?? 'http://localhost:3000',
+        allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+        allowHeaders: ['Content-Type', 'Authorization'],
+        credentials: true,
+      }),
+    );
+
+    // Inject the auth adapter into every request context so middleware can use it.
+    app.use('*', (c, next) => {
+      c.set('auth', auth);
+      return next();
+    });
+
+    // Health check endpoint
+    app.get('/health', (c) =>
+      c.json(getHealth({ auth: 'jwt_pbkdf2', database: 'd1', storage: 'not_wired' })),
+    );
+
+    // Feature routes
+    app.route('/auth', buildAuthRouter({ authService, loginLimiter, cookieSameSite }));
+    app.route('/admin/users', buildAdminUsersRouter(users, auth, tokens));
+
+    // Sanity demo — development only, can be removed post-milestone.
+    app.get('/protected/ping', authGuard, (c) =>
+      c.json({ message: 'pong', email: c.get('user').email }),
+    );
+  }
+}

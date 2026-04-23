@@ -8,7 +8,7 @@
         lint lint-web lint-shared test test-api \
         cf-typegen \
         db-migrate-local db-migrate-local-staging \
-        deploy-api deploy-web \
+        deploy-api deploy-web bootstrap-admin \
         clean clean-cache clean-all
 
 # ── Colours ────────────────────────────────────────────────────────────────────
@@ -75,6 +75,9 @@ lint-shared: ## Lint only packages/shared
 test: ## Run all tests
 	pnpm turbo run test
 
+test-web: ## Run apps/web tests (Vitest + JSDOM)
+	pnpm --filter web test
+
 test-api: ## Run apps/api tests (Vitest + Cloudflare Workers pool)
 	pnpm --filter api test
 
@@ -97,24 +100,39 @@ db-migrate-staging: ## Apply all D1 migrations to remote staging DB (arenaquest-
 # 🚢 DEPLOY
 # ==============================================================================
 deploy-web: ## Build and deploy apps/web to Cloudflare Pages (Production)
-	pnpm --filter web pages:build && \
+	NEXT_PUBLIC_API_URL="https://api.raphael-1d2.workers.dev" pnpm --filter web pages:build && \
 	pnpm --filter web exec wrangler pages deploy .vercel/output/static --project-name=arenaquest-web
 
 deploy-web-staging: ## Build and deploy apps/web to Cloudflare Pages (Staging)
-	pnpm --filter web pages:build && \
+	NEXT_PUBLIC_API_URL="https://api-staging.raphael-1d2.workers.dev" pnpm --filter web pages:build && \
 	pnpm --filter web exec wrangler pages deploy .vercel/output/static --project-name=arenaquest-web-staging
 
 deploy-api: ## Deploy apps/api to Cloudflare Workers (Production)
-	pnpm --filter api run deploy
+	pnpm --filter api exec wrangler deploy
 
 deploy-api-staging: ## Deploy apps/api to Cloudflare Workers (Staging)
-	pnpm --filter api run deploy --env staging
+	pnpm --filter api exec wrangler deploy --env staging
 
 create-db: ## Create a new D1 database
 	pnpm --filter api exec wrangler d1 create arenaquest-db
 
 create-db-staging: ## Create a new D1 database (Staging)
 	pnpm --filter api exec wrangler d1 create arenaquest-db-staging --env staging
+
+create-kv: ## Create a new KV namespace
+	pnpm --filter api exec wrangler kv:namespace create RATE_LIMIT_KV
+
+create-kv-staging: ## Create a new KV namespace (Staging)
+	pnpm --filter api exec wrangler kv namespace create RATE_LIMIT_KV --env staging
+
+list-kv: ## List all KV namespaces
+	pnpm --filter api exec wrangler kv namespace list
+
+list-kv-staging: ## List all KV namespaces (Staging)
+	pnpm --filter api exec wrangler kv namespace list --env staging
+
+bootstrap-admin: ## Interactively create the first admin account (local / staging / production)
+	@bash scripts/bootstrap-first-admin.sh
 
 deploy: deploy-web deploy-api
 

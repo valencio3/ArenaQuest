@@ -1,7 +1,7 @@
 # Task 09: Frontend — RBAC Navigation & Admin Dashboard (User CRUD)
 
 ## Metadata
-- **Status:** Pending
+- **Status:** Done
 - **Complexity:** High
 - **Milestone:** 2 — Authentication & User Management
 - **Dependencies:**
@@ -83,18 +83,18 @@ Route protected by:
 
 ## Acceptance Criteria
 
-- [ ] Non-admin users do not see "User Management" in the navigation.
-- [ ] A Student navigating directly to `/admin/users` is redirected to `/dashboard`.
-- [ ] Admin user sees the user table populated with real data from the API.
-- [ ] Admin can create a new user (modal form, required field validation).
-- [ ] Admin can change a user's role via the Edit form.
-- [ ] Admin can deactivate a user; the table row shows "Inactive" status afterwards.
-- [ ] All API calls from the dashboard include the `Authorization: Bearer <token>` header.
-- [ ] Component tests in `apps/web/__tests__/app/admin/users.test.tsx` cover:
+- [x] Non-admin users do not see "User Management" in the navigation.
+- [x] A Student navigating directly to `/admin/users` is redirected to `/dashboard`.
+- [x] Admin user sees the user table populated with real data from the API.
+- [x] Admin can create a new user (modal form, required field validation).
+- [x] Admin can change a user's role via the Edit form.
+- [x] Admin can deactivate a user; the table row shows "Inactive" status afterwards.
+- [x] All API calls from the dashboard include the `Authorization: Bearer <token>` header.
+- [x] Component tests in `apps/web/__tests__/app/admin/users.test.tsx` cover:
   - Table renders with mocked API data.
   - "Create User" form submission calls `adminUsersApi.create` with correct args.
   - Non-admin sees redirect (mock `useHasRole` returns `false`).
-- [ ] `pnpm --filter web test` — green.
+- [x] `pnpm --filter web test` — green.
 
 ---
 

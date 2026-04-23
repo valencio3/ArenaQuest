@@ -5,62 +5,50 @@
  *   - Ports (interfaces) live in @arenaquest/shared — imported here as types only.
  *   - Concrete adapters live in ./adapters — instantiated once per request
  *     using secrets/bindings from the Worker `env` object.
- *   - Route handlers receive adapters via parameter injection, never via
+ *   - Route handlers receive already-constructed services via closure, never via
  *     module-level singletons (Workers have no shared memory between requests).
  */
 
-import type { D1Database } from '@cloudflare/workers-types';
-import type { IAuthAdapter, IUserRepository } from '@arenaquest/shared/ports';
-import { JwtAuthAdapter } from './adapters/auth';
-import { D1UserRepository } from './adapters/db/d1-user-repository';
+import { Hono } from 'hono';
 
-export interface AppEnv extends Env {
-  /** HS256 signing secret for JWTs. Set with: wrangler secret put JWT_SECRET */
-  JWT_SECRET: string;
-  /** Cloudflare D1 database binding. Declared in wrangler.jsonc as "DB". */
-  DB: D1Database;
-  // STORAGE: R2Bucket;   // Phase 3
-}
+import { JwtAuthAdapter } from '@api/adapters/auth';
+import { D1UserRepository } from '@api/adapters/db/d1-user-repository';
+import { D1RefreshTokenRepository } from '@api/adapters/db/d1-refresh-token-repository';
+import { KvRateLimiter } from '@api/adapters/rate-limit/kv-rate-limiter';
+import { AuthService } from '@api/core/auth/auth-service';
+import { AppRouter } from '@api/routes';
+import { parseCookieSameSite } from '@api/routes/auth.router';
+import '@api/types/hono-env';
 
-type Adapters = {
-  auth: IAuthAdapter;
-  db: { users: IUserRepository };
-};
+export type AppEnv = Env;
 
-/** Build the adapter instances for a single request. */
-function buildAdapters(env: AppEnv): Adapters {
-  return {
-    auth: new JwtAuthAdapter({
-      secret: env.JWT_SECRET,
-      accessTokenExpiresInSeconds: 900,  // 15 min
-    }),
-    db: {
-      users: new D1UserRepository(env.DB),
-    },
-  };
+function buildApp(env: AppEnv): Hono {
+  const auth = new JwtAuthAdapter({
+    secret: env.JWT_SECRET,
+    accessTokenExpiresInSeconds: 900, // 15 min
+  });
+  const users = new D1UserRepository(env.DB);
+  const tokens = new D1RefreshTokenRepository(env.DB);
+  const authService = new AuthService(auth, users, tokens);
+  const loginLimiter = new KvRateLimiter(env.RATE_LIMIT_KV);
+
+  const app = new Hono();
+
+  AppRouter.register(app, {
+    auth,
+    users,
+    tokens,
+    authService,
+    loginLimiter,
+    cookieSameSite: parseCookieSameSite(env.COOKIE_SAMESITE),
+    allowedOrigins: env.ALLOWED_ORIGINS,
+  });
+
+  return app;
 }
 
 export default {
-  async fetch(request: Request, env: AppEnv, _ctx: ExecutionContext): Promise<Response> {
-    const url = new URL(request.url);
-    const _adapters = buildAdapters(env);
-
-    if (url.pathname === '/health') {
-      return Response.json({
-        status: 'ok',
-        version: '0.1.0',
-        timestamp: new Date().toISOString(),
-        adapters: {
-          auth: 'jwt_pbkdf2',
-          database: 'not_wired',  // Phase 2
-          storage: 'not_wired',   // Phase 2
-        },
-      });
-    }
-
-    return Response.json(
-      { error: 'Not Found', path: url.pathname },
-      { status: 404 },
-    );
+  async fetch(request: Request, env: AppEnv, ctx: ExecutionContext): Promise<Response> {
+    return buildApp(env).fetch(request, env, ctx);
   },
 } satisfies ExportedHandler<AppEnv>;

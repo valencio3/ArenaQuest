@@ -7,9 +7,12 @@
     "build": "next build",
     "pages:build": "next-on-pages",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
+    "@arenaquest/shared": "workspace:*",
     "next": "15.5.2",
     "react": "19.0.0",
     "react-dom": "19.0.0"
@@ -17,14 +20,20 @@
   "devDependencies": {
     "@cloudflare/next-on-pages": "^1",
     "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^6",
+    "@testing-library/react": "^16",
+    "@testing-library/user-event": "^14",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^4",
     "eslint": "^9",
     "eslint-config-next": "16.2.3",
+    "jsdom": "^26",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vercel": "^47.0.4",
+    "vitest": "~3.2.0",
     "wrangler": "^4.82.2"
   }
 }

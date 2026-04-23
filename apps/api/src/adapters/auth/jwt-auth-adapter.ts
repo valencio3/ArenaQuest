@@ -42,10 +42,12 @@ export interface JwtAuthAdapterConfig {
 
   /**
    * PBKDF2 iteration count.
-   * Defaults to 100_000.
-   * OWASP recommends ≥ 210_000 for SHA-256; use 100_000 as a practical
-   * baseline for edge functions where CPU time is limited per request.
-   * Increase for admin/registration paths if latency allows.
+   * Defaults to 100_000 — the maximum supported by the Cloudflare Workers
+   * Web Crypto API runtime. OWASP 2023 recommends 600_000 for SHA-256, but
+   * the Workers runtime caps `deriveBits` at 100_000 iterations.
+   * Lower values can be set in tests (`pbkdf2Iterations: 1_000`); the
+   * stored-hash format encodes the count per row, so old hashes remain
+   * verifiable even after a default change.
    */
   pbkdf2Iterations?: number;
 }
@@ -146,6 +148,24 @@ export class JwtAuthAdapter implements IAuthAdapter {
     this.secret = config.secret;
     this.accessTokenTtl = config.accessTokenExpiresInSeconds ?? 900;
     this.iterations = config.pbkdf2Iterations ?? 100_000;
+  }
+
+  // ── Key-derivation metadata ───────────────────────────────────────────────
+
+  get currentPbkdf2Iterations(): number {
+    return this.iterations;
+  }
+
+  /**
+   * Extract the PBKDF2 iteration count encoded in a stored hash string.
+   * Returns `null` for any input that does not follow the
+   * `pbkdf2:<n>:<salt>:<hash>` format or has a non-finite iteration count.
+   */
+  static readIterationsFromHash(storedHash: string): number | null {
+    const parts = storedHash.split(':');
+    if (parts.length !== 4 || parts[0] !== 'pbkdf2') return null;
+    const n = parseInt(parts[1], 10);
+    return Number.isFinite(n) ? n : null;
   }
 
   // ── Password hashing ──────────────────────────────────────────────────────
