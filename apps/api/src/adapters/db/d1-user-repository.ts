@@ -1,4 +1,4 @@
-import type { D1Database } from '@cloudflare/workers-types';
+
 import type {
   IUserRepository,
   UserRecord,
@@ -169,6 +169,26 @@ export class D1UserRepository implements IUserRepository {
   async count(): Promise<number> {
     const { results } = await this.db
       .prepare('SELECT COUNT(*) as cnt FROM users')
+      .all<{ cnt: number }>();
+    return Number(results[0]?.cnt ?? 0);
+  }
+
+  async updatePasswordHash(id: string, hash: string): Promise<void> {
+    await this.db
+      .prepare('UPDATE users SET password_hash = ? WHERE id = ?')
+      .bind(hash, id)
+      .run();
+  }
+
+  async countActiveAdmins(): Promise<number> {
+    const { results } = await this.db
+      .prepare(
+        `SELECT COUNT(DISTINCT u.id) AS cnt
+         FROM users u
+         INNER JOIN user_roles ur ON u.id = ur.user_id
+         INNER JOIN roles r        ON r.id = ur.role_id
+         WHERE r.name = 'admin' AND u.status = 'active'`,
+      )
       .all<{ cnt: number }>();
     return Number(results[0]?.cnt ?? 0);
   }

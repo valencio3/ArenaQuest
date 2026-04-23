@@ -1,7 +1,7 @@
 # Task 07: Web Logging Hygiene (remove `console.log`, add lint rule)
 
 ## Metadata
-- **Status:** Pending
+- **Status:** Done — commit `1acf836`
 - **Complexity:** Low
 - **Severity closed:** S-07 (Low)
 - **Story:** [`auth-hardening.story.md`](./auth-hardening.story.md)
@@ -55,10 +55,10 @@ Add to `apps/web/eslint.config.mjs`:
 
 ## Acceptance Criteria
 
-- [ ] `apps/web/src/lib/auth-api.ts` no longer contains `console.log`.
-- [ ] `apps/web/eslint.config.mjs` has the `no-console` rule scoped to `src/**`.
-- [ ] `make lint` reports no new warnings in `apps/web`.
-- [ ] `grep -R "console.log" apps/web/src` returns no matches.
+- [x] `apps/web/src/lib/auth-api.ts` no longer contains `console.log`.
+- [x] `apps/web/eslint.config.mjs` has the `no-console` rule scoped to `src/**`.
+- [x] `make lint` reports no new warnings in `apps/web`.
+- [x] `grep -R "console.log" apps/web/src` returns no matches.
 
 ---
 

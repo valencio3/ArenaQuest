@@ -1,7 +1,8 @@
 import { env, createExecutionContext, waitOnExecutionContext } from 'cloudflare:test';
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
 import worker, { type AppEnv } from '../../src/index';
 import { JwtAuthAdapter } from '@api/adapters/auth';
+import { sha256Hex } from '@api/adapters/db/hash';
 
 // ---------------------------------------------------------------------------
 // DB bootstrap
@@ -334,5 +335,373 @@ describe('DELETE /admin/users/:id', () => {
   it('returns 404 for an unknown id', async () => {
     const res = await req('DELETE', '/admin/users/does-not-exist', { token: adminToken });
     expect(res.status).toBe(404);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// S-02: refresh-token revocation on admin mutations
+// ---------------------------------------------------------------------------
+
+async function seedRefreshToken(userId: string, tokenValue: string): Promise<void> {
+  const tokenHash = await sha256Hex(tokenValue);
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  await env.DB
+    .prepare('INSERT INTO refresh_tokens (token, user_id, expires_at) VALUES (?, ?, ?)')
+    .bind(tokenHash, userId, expiresAt)
+    .run();
+}
+
+async function countTokensFor(userId: string): Promise<number> {
+  const row = await env.DB
+    .prepare('SELECT COUNT(*) AS n FROM refresh_tokens WHERE user_id = ?')
+    .bind(userId)
+    .first<{ n: number }>();
+  return row?.n ?? 0;
+}
+
+describe('Session revocation on admin mutations (S-02)', () => {
+  it('PATCH status=inactive revokes every refresh token for the user', async () => {
+    const createRes = await req('POST', '/admin/users', {
+      token: adminToken,
+      body: { name: 'Revoke Target', email: 'revoke-status@example.com', password: 'password123' },
+    });
+    const { id } = await createRes.json<{ id: string }>();
+
+    await seedRefreshToken(id, 'raw-token-status-a');
+    await seedRefreshToken(id, 'raw-token-status-b');
+    expect(await countTokensFor(id)).toBe(2);
+
+    const res = await req('PATCH', `/admin/users/${id}`, {
+      token: adminToken,
+      body: { status: 'inactive' },
+    });
+    expect(res.status).toBe(200);
+    expect(await countTokensFor(id)).toBe(0);
+  });
+
+  it('PATCH roles change revokes every refresh token for the user', async () => {
+    const createRes = await req('POST', '/admin/users', {
+      token: adminToken,
+      body: { name: 'Role Change Target', email: 'revoke-roles@example.com', password: 'password123' },
+    });
+    const { id } = await createRes.json<{ id: string }>();
+
+    await seedRefreshToken(id, 'raw-token-roles');
+    expect(await countTokensFor(id)).toBe(1);
+
+    const res = await req('PATCH', `/admin/users/${id}`, {
+      token: adminToken,
+      body: { roles: ['tutor'] },
+    });
+    expect(res.status).toBe(200);
+    expect(await countTokensFor(id)).toBe(0);
+  });
+
+  it('PATCH with only a name change does NOT revoke sessions', async () => {
+    const createRes = await req('POST', '/admin/users', {
+      token: adminToken,
+      body: { name: 'Name Only', email: 'revoke-name-only@example.com', password: 'password123' },
+    });
+    const { id } = await createRes.json<{ id: string }>();
+
+    await seedRefreshToken(id, 'raw-token-name-only');
+    expect(await countTokensFor(id)).toBe(1);
+
+    const res = await req('PATCH', `/admin/users/${id}`, {
+      token: adminToken,
+      body: { name: 'Name Only Renamed' },
+    });
+    expect(res.status).toBe(200);
+    expect(await countTokensFor(id)).toBe(1);
+  });
+
+  it('DELETE revokes every refresh token for the user', async () => {
+    const createRes = await req('POST', '/admin/users', {
+      token: adminToken,
+      body: { name: 'Delete Target', email: 'revoke-delete@example.com', password: 'password123' },
+    });
+    const { id } = await createRes.json<{ id: string }>();
+
+    await seedRefreshToken(id, 'raw-token-delete-a');
+    await seedRefreshToken(id, 'raw-token-delete-b');
+    expect(await countTokensFor(id)).toBe(2);
+
+    const res = await req('DELETE', `/admin/users/${id}`, { token: adminToken });
+    expect(res.status).toBe(204);
+    expect(await countTokensFor(id)).toBe(0);
+  });
+
+  it('POST /auth/refresh returns 401 after the user is deactivated', async () => {
+    // Create an active user with a known password so we can login through the router.
+    const createRes = await req('POST', '/admin/users', {
+      token: adminToken,
+      body: {
+        name: 'Refresh Victim',
+        email: 'refresh-victim@example.com',
+        password: 'password123',
+        roles: ['student'],
+      },
+    });
+    const { id } = await createRes.json<{ id: string }>();
+
+    const loginRes = await req('POST', '/auth/login', {
+      body: { email: 'refresh-victim@example.com', password: 'password123' },
+    });
+    expect(loginRes.status).toBe(200);
+    const setCookie = loginRes.headers.get('set-cookie') ?? '';
+    const match = setCookie.match(/refresh_token=([^;]+)/);
+    expect(match).not.toBeNull();
+    const refreshCookie = match![0];
+
+    // Admin deactivates the user.
+    const deactivateRes = await req('PATCH', `/admin/users/${id}`, {
+      token: adminToken,
+      body: { status: 'inactive' },
+    });
+    expect(deactivateRes.status).toBe(200);
+
+    // Refresh attempt with the pre-deactivation cookie must fail.
+    const refreshReq = new (Request as typeof globalThis.Request)(
+      'http://example.com/auth/refresh',
+      { method: 'POST', headers: { Cookie: refreshCookie } },
+    );
+    const ctx = createExecutionContext();
+    const refreshRes = await worker.fetch(refreshReq, env as AppEnv, ctx);
+    await waitOnExecutionContext(ctx);
+
+    expect(refreshRes.status).toBe(401);
+  });
+
+  it.skip('placeholder', async () => {});
+});
+
+// ---------------------------------------------------------------------------
+// S-05: admin lockout guards (last-admin + self-lockout)
+// ---------------------------------------------------------------------------
+
+describe('Admin lockout guards (S-05)', () => {
+  // Seed the actor user row so self-lockout tests can PATCH the actor itself.
+  // The JWT's `sub` is ADMIN_USER_ID; we need a DB row with that id and the
+  // admin role so the last-admin check can see a peer when expected.
+  beforeAll(async () => {
+    await env.DB
+      .prepare(
+        `INSERT OR IGNORE INTO users (id, name, email, password_hash, status)
+         VALUES (?, 'Acting Admin', 's05-actor@example.com', 'h', 'active')`,
+      )
+      .bind(ADMIN_USER_ID)
+      .run();
+    await env.DB
+      .prepare(
+        `INSERT OR IGNORE INTO user_roles (user_id, role_id)
+         VALUES (?, 'bace0701-15e3-5144-97c5-47487d543032')`,
+      )
+      .bind(ADMIN_USER_ID)
+      .run();
+  });
+
+  async function createAdmin(email: string, name = 'Peer Admin'): Promise<string> {
+    const res = await req('POST', '/admin/users', {
+      token: adminToken,
+      body: { name, email, password: 'password123', roles: ['admin'] },
+    });
+    expect(res.status).toBe(201);
+    const { id } = await res.json<{ id: string }>();
+    return id;
+  }
+
+  async function demoteToNonAdmin(userId: string): Promise<void> {
+    // Directly mutate DB to avoid the guards that the router would trigger.
+    await env.DB
+      .prepare(`DELETE FROM user_roles WHERE user_id = ?`)
+      .bind(userId)
+      .run();
+    await env.DB
+      .prepare(
+        `INSERT OR IGNORE INTO user_roles (user_id, role_id) VALUES (?, 'bf3d0f1d-7d77-5151-922e-b87dff0fa7ad')`,
+      )
+      .bind(userId)
+      .run();
+  }
+
+  it('blocks PATCH that would drop the last active admin (deactivation)', async () => {
+    // Isolate: strip every other admin so the peer we create is the only one.
+    await env.DB
+      .prepare(
+        `DELETE FROM user_roles
+         WHERE role_id = 'bace0701-15e3-5144-97c5-47487d543032'`,
+      )
+      .run();
+    const peerId = await createAdmin('s05-only-admin@example.com', 'Only Admin');
+
+    const res = await req('PATCH', `/admin/users/${peerId}`, {
+      token: adminToken,
+      body: { status: 'inactive' },
+    });
+
+    expect(res.status).toBe(409);
+    const body = await res.json<{ error: string }>();
+    expect(body.error).toBe('WOULD_LOCK_OUT_ADMINS');
+
+    // Cleanup: demote so subsequent tests don't see an unexpected admin.
+    await demoteToNonAdmin(peerId);
+  });
+
+  it('blocks PATCH that would strip the last admin of the admin role', async () => {
+    await env.DB
+      .prepare(
+        `DELETE FROM user_roles
+         WHERE role_id = 'bace0701-15e3-5144-97c5-47487d543032'`,
+      )
+      .run();
+    const peerId = await createAdmin('s05-strip-role@example.com', 'Only Admin 2');
+
+    const res = await req('PATCH', `/admin/users/${peerId}`, {
+      token: adminToken,
+      body: { roles: ['tutor'] },
+    });
+
+    expect(res.status).toBe(409);
+    const body = await res.json<{ error: string }>();
+    expect(body.error).toBe('WOULD_LOCK_OUT_ADMINS');
+
+    await demoteToNonAdmin(peerId);
+  });
+
+  it('allows deactivating an admin when a peer admin remains', async () => {
+    await env.DB
+      .prepare(
+        `DELETE FROM user_roles
+         WHERE role_id = 'bace0701-15e3-5144-97c5-47487d543032'`,
+      )
+      .run();
+    const keeperId = await createAdmin('s05-keeper@example.com', 'Keeper Admin');
+    const victimId = await createAdmin('s05-victim@example.com', 'Victim Admin');
+
+    const res = await req('PATCH', `/admin/users/${victimId}`, {
+      token: adminToken,
+      body: { status: 'inactive' },
+    });
+
+    expect(res.status).toBe(200);
+
+    await demoteToNonAdmin(keeperId);
+    await demoteToNonAdmin(victimId);
+  });
+
+  it('allows demoting a peer admin when another admin remains', async () => {
+    await env.DB
+      .prepare(
+        `DELETE FROM user_roles
+         WHERE role_id = 'bace0701-15e3-5144-97c5-47487d543032'`,
+      )
+      .run();
+    const keeperId = await createAdmin('s05-demote-keeper@example.com', 'Keeper');
+    const demoteeId = await createAdmin('s05-demotee@example.com', 'Demotee');
+
+    const res = await req('PATCH', `/admin/users/${demoteeId}`, {
+      token: adminToken,
+      body: { roles: ['tutor'] },
+    });
+
+    expect(res.status).toBe(200);
+
+    await demoteToNonAdmin(keeperId);
+  });
+
+  it('rejects self-deactivation with SELF_LOCKOUT', async () => {
+    const res = await req('PATCH', `/admin/users/${ADMIN_USER_ID}`, {
+      token: adminToken,
+      body: { status: 'inactive' },
+    });
+    expect(res.status).toBe(409);
+    const body = await res.json<{ error: string }>();
+    expect(body.error).toBe('SELF_LOCKOUT');
+  });
+
+  it('rejects self-demotion (removing own admin role) with SELF_LOCKOUT', async () => {
+    const res = await req('PATCH', `/admin/users/${ADMIN_USER_ID}`, {
+      token: adminToken,
+      body: { roles: ['tutor'] },
+    });
+    expect(res.status).toBe(409);
+    const body = await res.json<{ error: string }>();
+    expect(body.error).toBe('SELF_LOCKOUT');
+  });
+
+  it('rejects DELETE on self with SELF_LOCKOUT', async () => {
+    const res = await req('DELETE', `/admin/users/${ADMIN_USER_ID}`, {
+      token: adminToken,
+    });
+    expect(res.status).toBe(409);
+    const body = await res.json<{ error: string }>();
+    expect(body.error).toBe('SELF_LOCKOUT');
+  });
+
+  it('blocks DELETE that would drop the last active admin', async () => {
+    await env.DB
+      .prepare(
+        `DELETE FROM user_roles
+         WHERE role_id = 'bace0701-15e3-5144-97c5-47487d543032'`,
+      )
+      .run();
+    const peerId = await createAdmin('s05-delete-last@example.com', 'Last Admin');
+
+    const res = await req('DELETE', `/admin/users/${peerId}`, { token: adminToken });
+
+    expect(res.status).toBe(409);
+    const body = await res.json<{ error: string }>();
+    expect(body.error).toBe('WOULD_LOCK_OUT_ADMINS');
+
+    await demoteToNonAdmin(peerId);
+  });
+
+  it('allows name-only self-PATCH (not a lockout)', async () => {
+    const res = await req('PATCH', `/admin/users/${ADMIN_USER_ID}`, {
+      token: adminToken,
+      body: { name: 'Still Me, Renamed' },
+    });
+    expect(res.status).toBe(200);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Audit log (kept after S-05 so earlier lockout tests do not interfere)
+// ---------------------------------------------------------------------------
+
+describe('Admin audit log', () => {
+  it('emits an audit log line with { event, userId, actor, at } on revocation', async () => {
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+
+    const createRes = await req('POST', '/admin/users', {
+      token: adminToken,
+      body: { name: 'Audit Target', email: 'audit-revoke@example.com', password: 'password123' },
+    });
+    const { id } = await createRes.json<{ id: string }>();
+
+    const res = await req('PATCH', `/admin/users/${id}`, {
+      token: adminToken,
+      body: { status: 'inactive' },
+    });
+    expect(res.status).toBe(200);
+
+    const emitted = infoSpy.mock.calls
+      .map((args) => args[0])
+      .filter((arg): arg is string => typeof arg === 'string')
+      .map((line) => {
+        try { return JSON.parse(line) as Record<string, unknown>; }
+        catch { return null; }
+      })
+      .filter((obj): obj is Record<string, unknown> => obj !== null && obj.userId === id);
+
+    expect(emitted.length).toBeGreaterThan(0);
+    const entry = emitted[0];
+    expect(entry.event).toBe('user.sessions.revoked.deactivated');
+    expect(entry.userId).toBe(id);
+    expect(entry.actor).toBe(ADMIN_USER_ID);
+    expect(typeof entry.at).toBe('string');
+    expect(new Date(entry.at as string).toString()).not.toBe('Invalid Date');
+
+    infoSpy.mockRestore();
   });
 });
