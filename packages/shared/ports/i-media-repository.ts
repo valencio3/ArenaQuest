@@ -1,6 +1,8 @@
 import type { Entities } from '../types/entities';
 
 export interface CreateMediaInput {
+  /** If omitted, the repository generates a UUID. Pass an explicit id when the caller needs it before insert (e.g. to build the storage key). */
+  id?: string;
   topicNodeId: string;
   storageKey: string;
   sizeBytes: number;

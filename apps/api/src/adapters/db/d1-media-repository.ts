@@ -63,7 +63,7 @@ export class D1MediaRepository implements IMediaRepository {
   }
 
   async create(data: CreateMediaInput): Promise<Entities.Content.Media> {
-    const id = crypto.randomUUID();
+    const id = data.id ?? crypto.randomUUID();
 
     await this.db
       .prepare(
