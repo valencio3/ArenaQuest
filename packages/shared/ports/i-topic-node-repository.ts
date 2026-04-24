@@ -37,6 +37,8 @@ export interface ITopicNodeRepository {
   findById(id: string): Promise<TopicNodeRecord | null>;
   /** Returns direct children. Pass `null` to list root-level nodes only. */
   listChildren(parentId: string | null, opts?: { limit?: number; offset?: number }): Promise<TopicNodeRecord[]>;
+  /** Returns every node regardless of status or archive state, sorted by parent then order. */
+  listAll(opts?: { limit?: number; offset?: number }): Promise<TopicNodeRecord[]>;
   create(data: CreateTopicNodeInput): Promise<TopicNodeRecord>;
   update(id: string, data: UpdateTopicNodeInput): Promise<TopicNodeRecord>;
   /** Move a node to a new parent (or root). Atomic: validates cycle, updates parent + order, renumbers siblings. */

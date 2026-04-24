@@ -3,6 +3,7 @@ import { cors } from 'hono/cors';
 import { buildAuthRouter } from './auth.router';
 import type { CookieSameSite } from './auth.router';
 import { buildAdminUsersRouter } from './admin-users.router';
+import { buildAdminTopicsRouter } from './admin-topics.router';
 import { getHealth } from '@api/controllers/health.controller';
 import { authGuard } from '@api/middleware/auth-guard';
 import type {
@@ -44,7 +45,7 @@ export class AppRouter {
       allowedOrigins?: string;
     },
   ): void {
-    const { auth, users, tokens, authService, loginLimiter, cookieSameSite, allowedOrigins } = deps;
+    const { auth, users, tokens, topics, tags, authService, loginLimiter, cookieSameSite, allowedOrigins } = deps;
 
     // Enable CORS for frontend interaction
     app.use(
@@ -71,6 +72,7 @@ export class AppRouter {
     // Feature routes
     app.route('/auth', buildAuthRouter({ authService, loginLimiter, cookieSameSite }));
     app.route('/admin/users', buildAdminUsersRouter(users, auth, tokens));
+    app.route('/admin/topics', buildAdminTopicsRouter(topics, tags));
 
     // Sanity demo — development only, can be removed post-milestone.
     app.get('/protected/ping', authGuard, (c) =>

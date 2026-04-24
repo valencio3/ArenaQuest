@@ -125,6 +125,57 @@ export class D1TopicNodeRepository implements ITopicNodeRepository {
     return Promise.all(results.map(row => this.rowToRecord(row)));
   }
 
+  async listAll(opts?: { limit?: number; offset?: number }): Promise<TopicNodeRecord[]> {
+    const limit = opts?.limit ?? 1000;
+    const offset = opts?.offset ?? 0;
+
+    const { results: rows } = await this.db
+      .prepare('SELECT * FROM topic_nodes ORDER BY parent_id ASC, sort_order ASC LIMIT ? OFFSET ?')
+      .bind(limit, offset)
+      .all<TopicNodeRow>();
+
+    if (rows.length === 0) return [];
+
+    // Fetch all tag and prerequisite associations in two bulk queries — avoids N+1.
+    const [allTagRows, allPrereqRows] = await Promise.all([
+      this.db
+        .prepare(
+          'SELECT tnt.topic_node_id, t.id, t.name, t.slug FROM topic_node_tags tnt JOIN tags t ON t.id = tnt.tag_id',
+        )
+        .all<{ topic_node_id: string; id: string; name: string; slug: string }>(),
+      this.db
+        .prepare('SELECT topic_node_id, prerequisite_id FROM topic_node_prerequisites')
+        .all<{ topic_node_id: string; prerequisite_id: string }>(),
+    ]);
+
+    const tagsMap = new Map<string, Entities.Content.Tag[]>();
+    for (const r of allTagRows.results) {
+      const list = tagsMap.get(r.topic_node_id) ?? [];
+      list.push({ id: r.id, name: r.name, slug: r.slug });
+      tagsMap.set(r.topic_node_id, list);
+    }
+
+    const prereqsMap = new Map<string, string[]>();
+    for (const r of allPrereqRows.results) {
+      const list = prereqsMap.get(r.topic_node_id) ?? [];
+      list.push(r.prerequisite_id);
+      prereqsMap.set(r.topic_node_id, list);
+    }
+
+    return rows.map(row => ({
+      id: row.id,
+      parentId: row.parent_id,
+      title: row.title,
+      content: row.content,
+      status: row.status as Entities.Config.TopicNodeStatus,
+      tags: tagsMap.get(row.id) ?? [],
+      order: row.sort_order,
+      estimatedMinutes: row.estimated_minutes,
+      prerequisiteIds: prereqsMap.get(row.id) ?? [],
+      archived: row.archived === 1,
+    }));
+  }
+
   async create(data: CreateTopicNodeInput): Promise<TopicNodeRecord> {
     const id = crypto.randomUUID();
     const parentId = data.parentId ?? null;
