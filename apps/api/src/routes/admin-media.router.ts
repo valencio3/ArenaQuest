@@ -62,6 +62,32 @@ export function buildAdminMediaRouter(
 
   router.use('*', authGuard, requireRole(ROLES.ADMIN, ROLES.CONTENT_CREATOR));
 
+  // GET /admin/topics/:topicId/media
+  // Lists all media for a topic, including pending uploads.
+  router.get('/:topicId/media', async (c) => {
+    const topicId = c.req.param('topicId');
+    
+    const topic = await topics.findById(topicId);
+    if (!topic) return c.json({ error: 'NotFound', detail: 'topic not found' }, 404);
+
+    const mediaItems = await media.listByTopic(topicId, { includePending: true });
+
+    // Resolve presigned download URLs for all ready media items in parallel.
+    const mediaWithUrls = await Promise.all(
+      mediaItems.map(async (m) => {
+        if (m.status === Entities.Config.MediaStatus.READY) {
+          return {
+            ...m,
+            url: await storage.getPresignedDownloadUrl(m.storageKey, { expiresInSeconds: 3600 }),
+          };
+        }
+        return m;
+      }),
+    );
+
+    return c.json({ data: mediaWithUrls });
+  });
+
   // POST /admin/topics/:topicId/media/presign
   // Generates a presigned upload URL and creates a pending media record.
   router.post('/:topicId/media/presign', async (c) => {

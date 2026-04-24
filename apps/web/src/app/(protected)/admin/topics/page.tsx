@@ -9,6 +9,9 @@ import {
   type TopicNode,
   type CreateTopicInput,
 } from '@web/lib/admin-topics-api';
+import { adminMediaApi, type Media } from '@web/lib/admin-media-api';
+import { MediaUploader } from '@web/components/admin/MediaUploader';
+import { MediaList } from '@web/components/admin/MediaList';
 import { Spinner } from '@web/components/spinner';
 
 // ---------------------------------------------------------------------------
@@ -48,6 +51,7 @@ function getDropPosition(e: React.DragEvent<HTMLElement>): DropPosition {
   const rect = e.currentTarget.getBoundingClientRect();
   const height = rect.height || 1;
   // Use a fallback for clientY to handle environments where it might be in different places
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const clientY = e.clientY ?? (e as any).nativeEvent?.clientY ?? 0;
   const ratio = (clientY - rect.top) / height;
   if (ratio < 0.35) return 'before';
@@ -234,6 +238,8 @@ export default function AdminTopicsPage() {
   const [detailPrereqIds, setDetailPrereqIds] = useState('');
   const [detailError, setDetailError] = useState('');
   const [detailSaving, setDetailSaving] = useState(false);
+  const [detailMedia, setDetailMedia] = useState<Media[]>([]);
+  const [loadingMedia, setLoadingMedia] = useState(false);
 
   // ---------------------------------------------------------------------------
   // RBAC guard
@@ -280,6 +286,7 @@ export default function AdminTopicsPage() {
       setDetailMinutes(0);
       setDetailTagIds('');
       setDetailPrereqIds('');
+      setDetailMedia([]);
       return;
     }
     setDetailTitle(selectedNode.title);
@@ -288,8 +295,17 @@ export default function AdminTopicsPage() {
     setDetailMinutes(selectedNode.estimatedMinutes);
     setDetailTagIds(selectedNode.tags.map((t) => t.id).join(', '));
     setDetailPrereqIds(selectedNode.prerequisiteIds.join(', '));
+    
+    // Load media
+    if (accessToken) {
+      setLoadingMedia(true);
+      adminMediaApi.list(accessToken, selectedNode.id)
+        .then(setDetailMedia)
+        .catch(() => showToast('Failed to load media', 'error'))
+        .finally(() => setLoadingMedia(false));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedId]);
+  }, [selectedId, accessToken]);
 
   // ---------------------------------------------------------------------------
   // Toast helpers
@@ -374,6 +390,19 @@ export default function AdminTopicsPage() {
       setDetailError(err instanceof Error ? err.message : 'Failed to save changes');
     } finally {
       setDetailSaving(false);
+    }
+  }
+
+  async function reloadMedia() {
+    if (!accessToken || !selectedId) return;
+    setLoadingMedia(true);
+    try {
+      const media = await adminMediaApi.list(accessToken, selectedId);
+      setDetailMedia(media);
+    } catch {
+      showToast('Failed to reload media', 'error');
+    } finally {
+      setLoadingMedia(false);
     }
   }
 
@@ -748,6 +777,36 @@ export default function AdminTopicsPage() {
                 </button>
               </div>
             </form>
+
+            <div className="mt-12 space-y-6">
+              <div>
+                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Media Attachments</h3>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">Upload and manage files associated with this topic.</p>
+              </div>
+
+              {accessToken && selectedId && (
+                <MediaUploader
+                  topicId={selectedId}
+                  token={accessToken}
+                  onUploadComplete={reloadMedia}
+                />
+              )}
+
+              {loadingMedia ? (
+                <div className="flex justify-center py-8">
+                  <Spinner className="h-6 w-6 text-zinc-400" />
+                </div>
+              ) : (
+                accessToken && selectedId && (
+                  <MediaList
+                    topicId={selectedId}
+                    token={accessToken}
+                    media={detailMedia}
+                    onMediaDeleted={reloadMedia}
+                  />
+                )
+              )}
+            </div>
           </div>
           )}
         </div>

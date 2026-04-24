@@ -1,3 +1,5 @@
+import type { Media } from './admin-media-api';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
 
 export type TopicNode = {
@@ -11,6 +13,7 @@ export type TopicNode = {
   estimatedMinutes: number;
   tags: { id: string; name: string; slug: string }[];
   prerequisiteIds: string[];
+  media?: Media[];
 };
 
 export type CreateTopicInput = {
