@@ -1,5 +1,6 @@
-import type { D1Database } from '@cloudflare/workers-types';
+
 import type { IRefreshTokenRepository } from '@arenaquest/shared/ports';
+import { sha256Hex } from './hash';
 
 type RefreshTokenRow = {
   token: string;
@@ -11,16 +12,18 @@ export class D1RefreshTokenRepository implements IRefreshTokenRepository {
   constructor(private readonly db: D1Database) {}
 
   async save(userId: string, token: string, expiresAt: Date): Promise<void> {
+    const tokenHash = await sha256Hex(token);
     await this.db
       .prepare('INSERT INTO refresh_tokens (token, user_id, expires_at) VALUES (?, ?, ?)')
-      .bind(token, userId, expiresAt.toISOString())
+      .bind(tokenHash, userId, expiresAt.toISOString())
       .run();
   }
 
   async findByToken(token: string): Promise<{ userId: string; expiresAt: Date } | null> {
+    const tokenHash = await sha256Hex(token);
     const row = await this.db
       .prepare('SELECT token, user_id, expires_at FROM refresh_tokens WHERE token = ?')
-      .bind(token)
+      .bind(tokenHash)
       .first<RefreshTokenRow>();
 
     if (!row) return null;
@@ -28,7 +31,8 @@ export class D1RefreshTokenRepository implements IRefreshTokenRepository {
   }
 
   async delete(token: string): Promise<void> {
-    await this.db.prepare('DELETE FROM refresh_tokens WHERE token = ?').bind(token).run();
+    const tokenHash = await sha256Hex(token);
+    await this.db.prepare('DELETE FROM refresh_tokens WHERE token = ?').bind(tokenHash).run();
   }
 
   async deleteAllForUser(userId: string): Promise<void> {

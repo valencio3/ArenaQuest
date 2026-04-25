@@ -1,10 +1,16 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { buildAuthRouter } from './auth.router';
+import type { CookieSameSite } from './auth.router';
 import { buildAdminUsersRouter } from './admin-users.router';
 import { getHealth } from '@api/controllers/health.controller';
 import { authGuard } from '@api/middleware/auth-guard';
-import type { IAuthAdapter, IUserRepository } from '@arenaquest/shared/ports';
+import type {
+  IAuthAdapter,
+  IRateLimiter,
+  IRefreshTokenRepository,
+  IUserRepository,
+} from '@arenaquest/shared/ports';
 import type { AuthService } from '@api/core/auth/auth-service';
 
 /**
@@ -23,17 +29,20 @@ export class AppRouter {
     deps: {
       auth: IAuthAdapter;
       users: IUserRepository;
+      tokens: IRefreshTokenRepository;
       authService: AuthService;
-      allowedOrigin?: string;
+      loginLimiter: IRateLimiter;
+      cookieSameSite: CookieSameSite;
+      allowedOrigins?: string;
     },
   ): void {
-    const { auth, users, authService, allowedOrigin } = deps;
+    const { auth, users, tokens, authService, loginLimiter, cookieSameSite, allowedOrigins } = deps;
 
     // Enable CORS for frontend interaction
     app.use(
       '*',
       cors({
-        origin: allowedOrigin ?? 'http://localhost:3000',
+        origin: allowedOrigins?.split(',') ?? 'http://localhost:3000',
         allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
         allowHeaders: ['Content-Type', 'Authorization'],
         credentials: true,
@@ -52,8 +61,8 @@ export class AppRouter {
     );
 
     // Feature routes
-    app.route('/auth', buildAuthRouter(authService));
-    app.route('/admin/users', buildAdminUsersRouter(users, auth));
+    app.route('/auth', buildAuthRouter({ authService, loginLimiter, cookieSameSite }));
+    app.route('/admin/users', buildAdminUsersRouter(users, auth, tokens));
 
     // Sanity demo — development only, can be removed post-milestone.
     app.get('/protected/ping', authGuard, (c) =>

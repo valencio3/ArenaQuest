@@ -63,12 +63,13 @@ const IncomingRequest = Request<unknown, IncomingRequestCfProperties>;
 
 async function request(
   path: string,
-  options: { method?: string; body?: unknown; cookie?: string } = {},
+  options: { method?: string; body?: unknown; cookie?: string; ip?: string } = {},
 ): Promise<Response> {
-  const { method = 'POST', body, cookie } = options;
+  const { method = 'POST', body, cookie, ip } = options;
   const headers: Record<string, string> = {};
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   if (cookie) headers['Cookie'] = cookie;
+  if (ip) headers['CF-Connecting-IP'] = ip;
 
   const req = new IncomingRequest(`http://example.com${path}`, {
     method,
@@ -197,6 +198,103 @@ describe('POST /auth/refresh', () => {
   it('returns 401 when refresh_token cookie is absent', async () => {
     const res = await request('/auth/refresh');
     expect(res.status).toBe(401);
+  });
+});
+
+describe('POST /auth/login rate limiting (S-04)', () => {
+  it('returns 429 with Retry-After header after 5 failed attempts', async () => {
+    const victimEmail = 's04-lockout-6th@example.com';
+    const ip = '203.0.113.10';
+
+    for (let i = 0; i < 5; i++) {
+      const res = await request('/auth/login', {
+        body: { email: victimEmail, password: 'wrong' },
+        ip,
+      });
+      expect(res.status).toBe(401);
+    }
+
+    const locked = await request('/auth/login', {
+      body: { email: victimEmail, password: 'wrong' },
+      ip,
+    });
+
+    expect(locked.status).toBe(429);
+    const body = await locked.json<{ error: string }>();
+    expect(body.error).toBe('TooManyRequests');
+
+    const retryAfter = Number(locked.headers.get('Retry-After'));
+    expect(retryAfter).toBeGreaterThan(0);
+  });
+
+  it('resets the counter after a successful login within the window', async () => {
+    const ip = '203.0.113.20';
+
+    // Four failures — one short of lockout.
+    for (let i = 0; i < 4; i++) {
+      const res = await request('/auth/login', {
+        body: { email: TEST_EMAIL, password: 'wrong' },
+        ip,
+      });
+      expect(res.status).toBe(401);
+    }
+
+    // Correct credentials must succeed and clear the bucket.
+    const success = await request('/auth/login', {
+      body: { email: TEST_EMAIL, password: TEST_PASSWORD },
+      ip,
+    });
+    expect(success.status).toBe(200);
+
+    // After reset, a fresh run of 5 failures should still be allowed before
+    // lockout kicks in on the 6th attempt.
+    for (let i = 0; i < 5; i++) {
+      const res = await request('/auth/login', {
+        body: { email: TEST_EMAIL, password: 'wrong' },
+        ip,
+      });
+      expect(res.status).toBe(401);
+    }
+
+    const locked = await request('/auth/login', {
+      body: { email: TEST_EMAIL, password: 'wrong' },
+      ip,
+    });
+    expect(locked.status).toBe(429);
+  });
+
+  it('isolates buckets by (email, ip) — one tuple lockout does not affect another', async () => {
+    const email = 's04-isolation@example.com';
+    const attackerIp = '203.0.113.30';
+    const victimIp = '203.0.113.31';
+
+    for (let i = 0; i < 5; i++) {
+      await request('/auth/login', {
+        body: { email, password: 'wrong' },
+        ip: attackerIp,
+      });
+    }
+
+    // Attacker IP is locked out.
+    const attackerLocked = await request('/auth/login', {
+      body: { email, password: 'wrong' },
+      ip: attackerIp,
+    });
+    expect(attackerLocked.status).toBe(429);
+
+    // Same email from a different IP is still allowed.
+    const victim = await request('/auth/login', {
+      body: { email, password: 'wrong' },
+      ip: victimIp,
+    });
+    expect(victim.status).toBe(401);
+
+    // Different email from the attacker IP is still allowed.
+    const otherEmail = await request('/auth/login', {
+      body: { email: 's04-isolation-other@example.com', password: 'wrong' },
+      ip: attackerIp,
+    });
+    expect(otherEmail.status).toBe(401);
   });
 });
 

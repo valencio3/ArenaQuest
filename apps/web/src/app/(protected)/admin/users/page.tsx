@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Entities } from '@arenaquest/shared/types/entities';
 import { ROLES } from '@arenaquest/shared/constants/roles';

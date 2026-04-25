@@ -29,4 +29,15 @@ export interface IUserRepository {
   delete(id: string): Promise<void>;
   list(opts?: { limit?: number; offset?: number }): Promise<Entities.Identity.User[]>;
   count(): Promise<number>;
+  /**
+   * Count distinct users who are currently `active` AND hold the `admin` role.
+   * Used to prevent mutations that would leave the platform with no admins.
+   */
+  countActiveAdmins(): Promise<number>;
+  /**
+   * Update only the password hash column for a user.
+   * Used by the transparent PBKDF2 rehash path — isolated from the general
+   * `update` method to avoid accidentally overwriting other fields.
+   */
+  updatePasswordHash(id: string, hash: string): Promise<void>;
 }

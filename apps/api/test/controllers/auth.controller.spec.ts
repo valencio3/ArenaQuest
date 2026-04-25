@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { AuthController } from '@api/controllers/auth.controller';
 import { AuthService } from '@api/core/auth/auth-service';
-import { AuthError } from '@api/core/auth/auth-error';
 import type { IAuthAdapter, IUserRepository, IRefreshTokenRepository } from '@arenaquest/shared/ports';
 import { Entities } from '@arenaquest/shared/types/entities';
 
