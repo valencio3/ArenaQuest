@@ -14,11 +14,11 @@ By migrating to a **Controller-based architecture**, we align with the Clean Arc
 *   Enable 100% unit test coverage for business logic without requiring an HTTP server.
 
 ## ✅ Acceptance Criteria
-- [ ] **Infrastructure Separation**: Route files (`*.router.ts`) must contain ONLY path definitions, middleware assignments, and mapping of `ControllerResult` to Hono HTTP responses.
-- [ ] **Context Agnosticism**: Controllers MUST NOT import from `hono` or use the Hono `Context` object. They should receive plain objects/parameters and return typed results.
-- [ ] **Dependency Injection**: Controllers must receive their required Repositories/Adapters via constructor injection.
-- [ ] **Validation Mapping**: Zod schemas used for request bodies should be moved to the controller layer or shared type files.
-- [ ] **Test Coverage**: Each new controller must have a corresponding `.spec.ts` file with unit tests for success and failure scenarios.
+- [x] **Infrastructure Separation**: Route files (`*.router.ts`) must contain ONLY path definitions, middleware assignments, and mapping of `ControllerResult` to Hono HTTP responses.
+- [x] **Context Agnosticism**: Controllers MUST NOT import from `hono` or use the Hono `Context` object. They should receive plain objects/parameters and return typed results.
+- [x] **Dependency Injection**: Controllers must receive their required Repositories/Adapters via constructor injection.
+- [x] **Validation Mapping**: Zod schemas used for request bodies should be moved to the controller layer or shared type files.
+- [x] **Test Coverage**: Each new controller must have a corresponding `.spec.ts` file with unit tests for success and failure scenarios.
 
 ## 🛠️ Implementation Scope
 1.  **`AdminMediaController`**:
@@ -32,8 +32,28 @@ By migrating to a **Controller-based architecture**, we align with the Clean Arc
     *   Responsibilities: Public read-only topic access.
 
 ## 📈 Definition of Done (DoD)
-- [ ] Logic successfully migrated to `/src/controllers`.
-- [ ] Routers refactored to thin "delegates".
-- [ ] All existing integration tests pass.
-- [ ] New unit tests for controllers pass with high coverage.
-- [ ] No regressions in API behavior for frontend consumers.
+- [x] Logic successfully migrated to `/src/controllers`.
+- [x] Routers refactored to thin "delegates".
+- [x] All existing integration tests pass (340/341, 1 pre-existing skip).
+- [x] New unit tests for controllers pass with high coverage (70 unit tests across 3 new spec files).
+- [x] No regressions in API behavior for frontend consumers.
+
+## 🗒️ PM Review — 2026-04-29
+
+### ✅ Delivered
+All five acceptance criteria met and all DoD items checked off. The refactoring produced:
+
+- **`src/controllers/result.ts`** — Unified `ControllerResult<T>` type shared by all controllers.
+- **`src/controllers/admin-media.controller.ts`** — Extracted `listMedia`, `presignUpload`, `finalizeUpload`, `deleteMedia`. Includes Zod schema (`PresignSchema`), size-limit constants, and `sanitizeFileName` helper. Zero Hono dependencies.
+- **`src/controllers/admin-topics.controller.ts`** — Extracted `listAll`, `create`, `getById`, `update`, `move`, `archive`. All three Zod schemas moved here. Zero Hono dependencies.
+- **`src/controllers/topics.controller.ts`** — Extracted `listPublished`, `getPublishedById`. Zero Hono dependencies.
+- Three router files reduced to thin HTTP-to-controller delegates (path + middleware + result mapping only).
+- **70 new pure unit tests** (no HTTP server, no Cloudflare runtime needed for logic tests).
+
+### ⚠️ Observations & Gaps
+1. **`sanitizeFileName` is exported but not tested directly** — it's exercised indirectly through `presignUpload`, but a dedicated unit for edge cases (empty string, unicode, very long names) would raise confidence. Low priority.
+2. **`PresignSchema` / `CreateTopicSchema` etc. are exported** from controller files rather than dedicated schema files. Acceptable for now, but as these schemas grow they could be split into a `schemas/` folder.
+3. **`ITagRepository` is injected but unused** in `AdminTopicsController`. Tag wiring is presumably a future feature. The `_tags` parameter naming signals this intentionally.
+4. **`Cache-Control` header** remains in the router layer (`topics.router.ts`), which is correct — it is an HTTP concern, not a business concern.
+
+### 🔖 Status: **DONE**

@@ -1,6 +1,9 @@
 import type { AuthService } from '@api/core/auth/auth-service';
 import { AuthError } from '@api/core/auth/auth-error';
 import type { Entities } from '@arenaquest/shared/types/entities';
+import type { ControllerResult } from '../core/result';
+
+export type { ControllerResult };
 
 // ---------------------------------------------------------------------------
 // Result types
@@ -23,10 +26,6 @@ export type RefreshSuccess = {
   accessToken: string;
   refreshToken: string;
 };
-
-type Ok<T> = { ok: true; data: T };
-type Err = { ok: false; status: 400 | 401; error: string };
-export type ControllerResult<T> = Ok<T> | Err;
 
 // ---------------------------------------------------------------------------
 // Controller
