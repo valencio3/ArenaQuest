@@ -10,26 +10,27 @@ The project aims to provide a robust framework for managing hierarchical topics,
 
 The system is designed following a **Cloud-Agnostic Strategy**:
 
-- **Front-End:** Next.js 15 (React 19) focused on the participant's journey.
-- **Back-End:** Hono-based API running on Cloudflare Workers (Wrangler).
-- **Database:** Cloudflare D1 (SQLite) for structured data with a repository-based abstraction layer.
-- **Cache/Rate-Limit:** Cloudflare KV for transient state and security.
-- **Storage:** Object Storage integration (R2/S3 compatible) for media handling.
+- **Front-End:** Next.js 15 (React 19) covering the participant catalog, admin backoffice, and authentication flows.
+- **Back-End:** Hono-based API running on Cloudflare Workers (Wrangler), organised around a controller layer with `ControllerResult`, Zod-driven `@ValidateBody`/`@Body` decorators, and per-request adapter wiring.
+- **Database:** Cloudflare D1 (SQLite) for structured data with a repository-based abstraction layer (users, refresh tokens, topic nodes, tags, media).
+- **Cache/Rate-Limit:** Cloudflare KV for transient state and security (login throttling).
+- **Storage:** Cloudflare R2 (S3-compatible) with a presigned-upload lifecycle for media handling.
 
 ## 🛠️ Key Features (Phase 1 & Beyond)
 
-- **Secure Authentication:** Portable JWT-based auth with PBKDF2 hashing (Web Crypto API).
-- **Hierarchical Content Management:** Organize sports and activities into logical trees of topics and sub-topics.
-- **Engagement Engine:** Define tasks and stages to track user milestones.
-- **Student Progress Portal:** A dedicated area for participants to visualize their growth.
-- **Administrative Backoffice:** Comprehensive tools for managing users (with lockout protection), content, and system configurations.
+- **Secure Authentication:** Portable JWT-based auth with PBKDF2 hashing (Web Crypto API), refresh-token rotation, and KV-backed login rate limiting.
+- **Hierarchical Content Management:** Topic-tree engine with draft/published/archived states, prerequisites, tags, and Markdown content sanitisation.
+- **Media Pipeline:** Presigned uploads to R2/S3, attached to topics and surfaced through dedicated viewers (image, video, document).
+- **Engagement Engine:** Tasks and stages to track user milestones (in progress).
+- **Student Progress Portal:** A dedicated area for participants to navigate the catalog and visualise their growth.
+- **Administrative Backoffice:** Drag-and-drop topic tree, media manager, and user administration with admin lockout guards.
 
 ## 🗺️ Roadmap
 
 1. **✅ Foundation & Infrastructure:** Core repository, monorepo setup, and CI/CD.
 2. **✅ Auth & User Management:** Secure, portable authentication and admin guards.
-3. **🚧 Core Content & Media:** Deploying the hierarchical topic engine and media storage.
-4. **📅 Task Engine:** Building the logic for interconnection and progress tracking.
+3. **✅ Core Content & Media:** Hierarchical topic engine, R2-backed media pipeline, and public catalog.
+4. **🚧 Task Engine:** Building the logic for interconnection and progress tracking.
 
 ---
 
@@ -99,12 +100,17 @@ A `Makefile` is provided at the root of the repository with convenient shortcuts
 | `make lint` | Lint all workspaces |
 | `make test` | Run all tests across the monorepo |
 
-### 🗄️ Database (D1)
+### 🗄️ Database & Cloudflare Resources
 
 | Command | Description |
 |---|---|
-| `make db-migrate-local` | Apply migrations to local D1 instance |
-| `make db-migrate-staging`| Apply migrations to remote staging D1 |
+| `make db-migrations-dev` | Apply D1 migrations to the local dev database |
+| `make db-migrations-staging` | Apply D1 migrations to the remote staging database |
+| `make db-migrations-prod` | Apply D1 migrations to the remote production database |
+| `make create-db` / `create-db-staging` | Create a new D1 database (production / staging) |
+| `make create-kv` / `create-kv-staging` | Create the `RATE_LIMIT_KV` namespace |
+| `make list-kv` / `list-kv-staging` | List existing KV namespaces |
+| `make cf-typegen` | Regenerate Worker bindings types |
 
 ### ☁️ Deployment
 
@@ -112,14 +118,16 @@ A `Makefile` is provided at the root of the repository with convenient shortcuts
 |---|---|
 | `make deploy` | Deploy both Web and API to **Production** |
 | `make deploy-staging` | Deploy both Web and API to **Staging** |
-| `make deploy-api` | Deploy only `apps/api` (Production) |
-| `make deploy-web` | Deploy only `apps/web` (Production) |
+| `make deploy-api` / `deploy-api-staging` | Deploy only `apps/api` |
+| `make deploy-web` / `deploy-web-staging` | Deploy only `apps/web` |
 
 ### 🧹 Clean
 
 | Command | Description |
 |---|---|
-| `make clean-all` | Remove all build artefacts and Turborepo caches |
+| `make clean` | Remove `.next`, `.vercel`, and `dist` build artefacts |
+| `make clean-cache` | Remove Turborepo caches |
+| `make clean-all` | Run both of the above |
 
 ---
 

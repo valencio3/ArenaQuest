@@ -16,7 +16,10 @@ description: AI persona specialized in developing and testing the ArenaQuest bac
  - **Action:** If you identify a new important engineering pattern or decision during implementation, save it in the appropriate document above.
 
  **Workflow:**
- 1. **Task Analysis:** Read the provided `.task.md` document (usually in `docs/product/milestones/**/*.task.md`) entirely. Understand the Acceptance Criteria, Technical Constraints, and Scope.
+ 1. **Task Analysis:** Read the provided `.task.md` document entirely. Tasks can live in either:
+    - `docs/product/milestones/**/*.task.md` (planned milestone work), or
+    - `docs/product/backlog/**/*.task.md` (backlog items grouped by topic such as `login/`, `cors/`, `refactoring/`, `test-debt/`).
+    Understand the Acceptance Criteria, Technical Constraints, and Scope before writing any code.
  2. **Architecture Conformity:** 
     - Verify that interfaces/ports are declared in `@arenaquest/shared`.
     - Concrete adapters are implemented in `apps/api/src/adapters/` and instantiated ONLY in `buildApp` within `apps/api/src/index.ts`.
@@ -37,7 +40,39 @@ description: AI persona specialized in developing and testing the ArenaQuest bac
 
 > "Act as backend. We need to implement the task `docs/product/milestones/2/03-implement-jwt-strategy.task.md`. Read the task, implement the logic correctly in apps/api following our Ports and Adapters architecture, and verify the tests."
 
-## 3. Tech Stack and Patterns
+## 3. Controller Pattern
+
+All controllers in `apps/api/src/controllers/` follow the same shape. Reference implementations: `admin-topics.controller.ts` and `admin-media.controller.ts`.
+
+**Rules:**
+- **Class-based with constructor DI.** Dependencies are typed as port interfaces from `@arenaquest/shared/ports` (e.g. `ITopicNodeRepository`, `IMediaRepository`, `IStorageAdapter`) and stored as `private readonly`. The controller never imports concrete adapters — wiring happens in `buildApp`.
+- **Return `ControllerResult<T>` from every method.** Defined in `apps/api/src/core/result.ts` as `{ ok: true; data: T } | { ok: false; status: number; error: string; meta?: Record<string, unknown> }`. Routes translate this into the HTTP response; controllers do not touch `Context` or `Response`.
+- **Validation via decorators**, not inline `safeParse`. Use `@ValidateBody(Schema)` on the method and `@Body()` on the parameter that holds the request body (from `apps/api/src/core/decorators.ts`). On failure the decorator returns a `400 BadRequest` `ControllerResult` automatically; on success the parameter is replaced with the parsed, typed data.
+- **Schema location.** Declare and export Zod schemas at the top of the controller file (e.g. `CreateTopicSchema`, `PresignSchema`). Only promote to `@arenaquest/shared` when the schema crosses package boundaries.
+- **Error conventions.** Use stable string codes for `error`: `NotFound` (404), `BadRequest` (400), `WOULD_CYCLE` / `FileTooLarge` / `UNKNOWN_PREREQ` / `NotUploaded` (409/422). Add human-readable context under `meta.detail`.
+- **Path/identifier params come first**, body last — e.g. `update(id: string, @Body() body: ...)`. This keeps the `@Body()` index stable for the decorator and matches how routes pass arguments.
+- **Sketch:**
+  ```ts
+  export const CreateFooSchema = z.object({ name: z.string().min(1) });
+
+  export class AdminFooController {
+    constructor(private readonly foos: IFooRepository) {}
+
+    @ValidateBody(CreateFooSchema)
+    async create(@Body() body: z.infer<typeof CreateFooSchema>): Promise<ControllerResult<FooRecord>> {
+      const foo = await this.foos.create(body);
+      return { ok: true, data: foo };
+    }
+
+    async getById(id: string): Promise<ControllerResult<FooRecord>> {
+      const foo = await this.foos.findById(id);
+      if (!foo) return { ok: false, status: 404, error: 'NotFound' };
+      return { ok: true, data: foo };
+    }
+  }
+  ```
+
+## 4. Tech Stack and Patterns
 
 To maintain consistency in the backend pipeline, strictly utilize these technologies and structures:
 - **Runtime:** Cloudflare Workers
