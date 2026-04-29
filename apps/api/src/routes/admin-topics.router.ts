@@ -5,6 +5,7 @@ import { requireRole } from '@api/middleware/require-role';
 import { ROLES } from '@arenaquest/shared/constants/roles';
 import { sanitizeMarkdown } from '@arenaquest/shared/utils/sanitize-markdown';
 import type { ITopicNodeRepository, ITagRepository } from '@arenaquest/shared/ports';
+import type { Entities } from '@arenaquest/shared/types/entities';
 
 const TOPIC_STATUS_VALUES = ['draft', 'published', 'archived'] as const;
 
@@ -69,7 +70,7 @@ export function buildAdminTopicsRouter(topics: ITopicNodeRepository, _tags: ITag
       parentId,
       title,
       content: content !== undefined ? sanitizeMarkdown(content) : undefined,
-      status,
+      status: status as Entities.Config.TopicNodeStatus,
       estimatedMinutes,
       tagIds,
       prerequisiteIds,
@@ -113,7 +114,7 @@ export function buildAdminTopicsRouter(topics: ITopicNodeRepository, _tags: ITag
     const node = await topics.update(id, {
       title,
       content: content !== undefined ? sanitizeMarkdown(content) : undefined,
-      status,
+      status: status as Entities.Config.TopicNodeStatus,
       estimatedMinutes,
       tagIds,
       prerequisiteIds,

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { ROLES } from '@arenaquest/shared/constants/roles';
 import { useAuth, useHasRole } from '@web/hooks/use-auth';
@@ -84,7 +84,7 @@ function CreateModal({ parentId, onSubmit, onClose }: CreateModalProps) {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!title.trim()) { setError('Title is required.'); return; }
     setSubmitting(true);
@@ -362,7 +362,7 @@ export default function AdminTopicsPage() {
     }
   }
 
-  async function handleDetailSave(e: React.FormEvent) {
+  async function handleDetailSave(e: FormEvent) {
     e.preventDefault();
     if (!selectedId || !accessToken) return;
     setDetailError('');

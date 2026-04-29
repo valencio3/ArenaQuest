@@ -54,7 +54,7 @@ export class AppRouter {
       '*',
       cors({
         origin: allowedOrigins?.split(',') ?? 'http://localhost:3000',
-        allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+        allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
         allowHeaders: ['Content-Type', 'Authorization'],
         credentials: true,
       }),

@@ -1,7 +1,7 @@
 # Task 08: Frontend — Admin Topic Tree Dashboard
 
 ## Metadata
-- **Status:** Completed
+- **Status:** Done
 - **Complexity:** High
 - **Milestone:** 3 — Content & Media Core
 - **Dependencies:** Task 04
