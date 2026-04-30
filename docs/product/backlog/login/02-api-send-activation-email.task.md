@@ -151,8 +151,8 @@ Each template, in Portuguese (matching the existing UI copy):
 9. Wait or manually expire a token, retry → expect `400 InvalidToken`.
 
 ### Definition of Done
-- [ ] Unit + integration tests green (`make test-api`).
-- [ ] Migration `0007_create_activation_tokens.sql` runs cleanly against a fresh local D1.
-- [ ] `MAIL_DRIVER=console` and `MAIL_DRIVER=resend` both wire successfully (Resend exercised manually against a sandbox key, not in CI).
-- [ ] No plaintext tokens in any persistent store (DB, KV, logs sent to production telemetry).
-- [ ] `IMailer` and `IActivationTokenRepository` ports live in `packages/shared/ports` (cloud-agnostic) — no Cloudflare types in their signatures.
+- [x] Unit + integration tests green (`make test-api`).
+- [x] Migration `0007_create_activation_tokens.sql` runs cleanly against a fresh local D1.
+- [x] `MAIL_DRIVER=console` and `MAIL_DRIVER=resend` both wire successfully (Resend exercised manually against a sandbox key, not in CI).
+- [x] No plaintext tokens in any persistent store (DB, KV, logs sent to production telemetry).
+- [x] `IMailer` and `IActivationTokenRepository` ports live in `packages/shared/ports` (cloud-agnostic) — no Cloudflare types in their signatures.

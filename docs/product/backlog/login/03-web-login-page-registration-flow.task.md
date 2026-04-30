@@ -132,9 +132,9 @@ Both throw a typed error class (reuse / extend whatever `login` throws today) wi
 11. Run an axe / Lighthouse pass on the new `/activate` page; no new accessibility regressions vs. the login page baseline.
 
 ### Definition of Done
-- [ ] All component tests pass (`pnpm --filter web test`).
-- [ ] Type checks clean (`pnpm turbo run build`).
-- [ ] Lint clean (`make lint`).
-- [ ] No `setTimeout`-based fake-success branches remain in `RegisterForm`.
-- [ ] `apps/web/src/lib/auth-api.ts` exports `register` and `activate`, both covered by at least one test.
-- [ ] Manual flow #1–#11 above all pass on a fresh local DB.
+- [x] All component tests pass (`pnpm --filter web test`).
+- [x] Type checks clean (`pnpm turbo run build`).
+- [x] Lint clean (`make lint`).
+- [x] No `setTimeout`-based fake-success branches remain in `RegisterForm`.
+- [x] `apps/web/src/lib/auth-api.ts` exports `register` and `activate`, both covered by at least one test.
+- [x] Manual flow #1–#11 above all pass on a fresh local DB.

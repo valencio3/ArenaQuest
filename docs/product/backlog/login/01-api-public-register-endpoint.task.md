@@ -133,7 +133,7 @@ Error responses:
 5. Repeat the registration call 6× quickly → 6th call returns `429`.
 
 ### Definition of Done
-- [ ] All unit + integration tests green (`make test-api`).
-- [ ] No new `hono` imports outside `routes/`.
-- [ ] No new external auth/crypto dependencies in `apps/api/package.json`.
-- [ ] Event emitter contract documented inline (JSDoc on the emitter type) so Task 02 can subscribe without re-reading this spec.
+- [x] All unit + integration tests green (`make test-api`).
+- [x] No new `hono` imports outside `routes/`.
+- [x] No new external auth/crypto dependencies in `apps/api/package.json`.
+- [x] Event emitter contract documented inline (JSDoc on the emitter type) so Task 02 can subscribe without re-reading this spec.
