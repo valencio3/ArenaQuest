@@ -31,6 +31,13 @@ const MIGRATION_SQL = [
     user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     expires_at TEXT NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS user_activation_tokens (
+    token_hash    TEXT    NOT NULL PRIMARY KEY,
+    user_id       TEXT    NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    expires_at    INTEGER NOT NULL,
+    consumed_at   INTEGER NULL,
+    created_at    INTEGER NOT NULL
+  )`,
 ];
 
 beforeAll(async () => {

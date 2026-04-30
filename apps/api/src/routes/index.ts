@@ -3,6 +3,7 @@ import { cors } from 'hono/cors';
 import { buildAuthRouter } from './auth.router';
 import type { CookieSameSite } from './auth.router';
 import type { RegisterController } from '@api/controllers/register.controller';
+import type { ActivateController } from '@api/controllers/activate.controller';
 import { buildAdminUsersRouter } from './admin-users.router';
 import { buildAdminTopicsRouter } from './admin-topics.router';
 import { buildAdminMediaRouter } from './admin-media.router';
@@ -47,6 +48,8 @@ export class AppRouter {
       loginLimiter: IRateLimiter;
       registerController: RegisterController;
       registerLimiter: IRateLimiter;
+      activateController: ActivateController;
+      activateLimiter: IRateLimiter;
       cookieSameSite: CookieSameSite;
       allowedOrigins?: string;
       /**
@@ -57,7 +60,7 @@ export class AppRouter {
       strictCors: boolean;
     },
   ): void {
-    const { auth, users, tokens, topics, tags, media, storage, authService, loginLimiter, registerController, registerLimiter, cookieSameSite, allowedOrigins, strictCors } = deps;
+    const { auth, users, tokens, topics, tags, media, storage, authService, loginLimiter, registerController, registerLimiter, activateController, activateLimiter, cookieSameSite, allowedOrigins, strictCors } = deps;
     // Build origin matcher from config — strict in prod, lenient in dev.
     const originRules = parseAllowedOrigins(allowedOrigins, { strict: strictCors });
 
@@ -98,7 +101,7 @@ export class AppRouter {
     );
 
     // Feature routes
-    app.route('/auth', buildAuthRouter({ authService, loginLimiter, cookieSameSite, registerController, registerLimiter }));
+    app.route('/auth', buildAuthRouter({ authService, loginLimiter, cookieSameSite, registerController, registerLimiter, activateController, activateLimiter }));
     app.route('/admin/users', buildAdminUsersRouter(users, auth, tokens));
     app.route('/admin/topics', buildAdminTopicsRouter(topics, tags));
     app.route('/admin/topics', buildAdminMediaRouter(topics, media, storage));

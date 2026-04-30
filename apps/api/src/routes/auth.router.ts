@@ -3,7 +3,9 @@ import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import type { AuthService } from '@api/core/auth/auth-service';
 import { AuthController } from '@api/controllers/auth.controller';
 import type { RegisterController } from '@api/controllers/register.controller';
+import type { ActivateController } from '@api/controllers/activate.controller';
 import { buildRegisterRouter } from '@api/routes/register.router';
+import { buildActivateRouter } from '@api/routes/activate.router';
 import type { IRateLimiter } from '@arenaquest/shared/ports';
 
 const COOKIE_NAME = 'refresh_token';
@@ -42,6 +44,8 @@ export interface AuthRouterDeps {
   cookieSameSite: CookieSameSite;
   registerController: RegisterController;
   registerLimiter: IRateLimiter;
+  activateController: ActivateController;
+  activateLimiter: IRateLimiter;
 }
 
 /**
@@ -59,7 +63,7 @@ function extractIp(header: string | undefined): string {
 }
 
 export function buildAuthRouter(deps: AuthRouterDeps): Hono {
-  const { authService, loginLimiter, cookieSameSite, registerController, registerLimiter } = deps;
+  const { authService, loginLimiter, cookieSameSite, registerController, registerLimiter, activateController, activateLimiter } = deps;
   const controller = new AuthController(authService);
   const router = new Hono();
 
@@ -67,6 +71,7 @@ export function buildAuthRouter(deps: AuthRouterDeps): Hono {
   // so the rate limit + body parsing live in their own module without
   // colliding with login's limiter or cookie handling.
   router.route('/', buildRegisterRouter({ controller: registerController, limiter: registerLimiter }));
+  router.route('/', buildActivateRouter({ controller: activateController, limiter: activateLimiter }));
 
   router.post('/login', async (c) => {
     const body = await c.req.json<{ email?: string; password?: string }>();
