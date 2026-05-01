@@ -252,7 +252,7 @@ for the full login flow.
 
 ---
 
-## Recipe: Adding a New Error Code
+## Implementation Checklist: Adding a New Error Code
 
 ### 1. Pick the right status
 

@@ -9,7 +9,7 @@ returns a `ControllerResult<T>` so the route layer has a single, mechanical way
 to map success/failure into a response.
 
 This document explains the contract, the decorators that enforce it, and the
-step-by-step recipe for adding a new endpoint.
+step-by-step implementation checklist for adding a new endpoint.
 
 ## Quick Reference
 
@@ -111,7 +111,7 @@ export class AdminTopicsController {
 
 ---
 
-## Recipe: Adding a New Endpoint
+## Implementation Checklist: Adding a New Endpoint
 
 Below is the full path for a new admin endpoint, top to bottom.
 
