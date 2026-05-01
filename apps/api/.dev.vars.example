@@ -14,10 +14,9 @@ ALLOWED_ORIGINS=http://localhost:3000
 R2_ACCESS_KEY_ID=local-dev-r2-access-key-id
 R2_SECRET_ACCESS_KEY=local-dev-r2-secret-access-key
 
-# Activation flow (Task 02).
 # MAIL_DRIVER=console writes the activation email to Wrangler stdout so devs
 # can copy the link without configuring SMTP/Resend locally.
-MAIL_DRIVER=console
+MAIL_DRIVER=
 MAIL_FROM=ArenaQuest Local <noreply@arenaquest.local>
 # Required when MAIL_DRIVER=resend (staging/prod use this).
 RESEND_API_KEY=
