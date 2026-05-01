@@ -213,7 +213,7 @@ restart any running `wrangler dev` so the local D1 schema is reloaded.
 
 ---
 
-## Recipe: Adding a New Repository
+## Implementation Checklist: Adding a New Repository
 
 ### 1. Define the port
 

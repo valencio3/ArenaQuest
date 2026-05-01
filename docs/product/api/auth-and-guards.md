@@ -245,7 +245,7 @@ correct, because it indicates a runtime fault, not a credential decision.
 
 ---
 
-## Recipe: Adding a New Protected Endpoint
+## Implementation Checklist: Adding a New Protected Endpoint
 
 ### 1. Pick the guards
 

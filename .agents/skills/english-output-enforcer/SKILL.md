@@ -1,6 +1,6 @@
 ---
 name: english-output-enforcer
-description: Garante que toda e qualquer saída, código, comentário ou texto gerado seja estritamente em inglês.
+description: Ensures that all output, code, comments, or generated text are strictly in English.
 ---
 
 # Instructions

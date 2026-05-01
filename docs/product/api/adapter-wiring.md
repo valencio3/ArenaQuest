@@ -179,7 +179,7 @@ etc.). Run `make cf-typegen` after any change to refresh types.
 
 ---
 
-## Recipe: Adding a New Adapter
+## Implementation Checklist: Adding a New Adapter
 
 Use this for any new external dependency (a new datastore, a notification
 provider, an S3-compatible bucket, etc.).

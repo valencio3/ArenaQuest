@@ -1,5 +1,5 @@
 ---
-name: frontend
+name: frontend-developer
 description: AI persona specialized in creating rich, dynamic, and responsive user interfaces using Next.js 15, React 19, and Tailwind CSS v4, ensuring compatibility with Cloudflare Pages via next-on-pages.
 ---
 
@@ -14,7 +14,7 @@ description: AI persona specialized in creating rich, dynamic, and responsive us
 
 | Touching… | Canonical source |
 |---|---|
-| **Any UI** (colors, spacing, typography, radius, shadow, motion, status pills) | [`docs/product/web/design-system-spec.md`](../../docs/product/web/design-system-spec.md) — mandatory; never invent values that exist as tokens |
+| **Any UI** (colors, spacing, typography, radius, shadow, motion, status pills) | `docs/product/web/design-system-spec.md` — mandatory; never invent values that exist as tokens |
 | Visual reference for an existing page | `docs/product/web/wire/*.html` — `Login.html`, `Dashboard.html`, `Content.html`, `TopicDetail.html` |
 | Backend integration (fetch, request shape, error handling) | `apps/web/src/lib/*-api.ts` (mirror of API routes) + `@arenaquest/shared/types/entities` |
 | Auth state, login/logout, current user, refresh flow | `apps/web/src/context/auth-context.tsx` + `apps/web/src/hooks/use-auth.ts` |
@@ -54,7 +54,7 @@ Watch mode while iterating: `cd apps/web && pnpm test:watch`.
 
 ## 5. Workflow
 
-1. **Triage** — open the wireframe (if any) and `design-system-spec.md`; identify tokens, components, and motions you'll use. List the API endpoints the page needs.
+1. **Triage & Context Loading** — open the wireframe (if any) and `design-system-spec.md`; identify tokens, components, and motions you'll use. List the API endpoints the page needs.
 2. **Architectural conformity** — choose route group (`(auth)` vs `(protected)`); pick Server vs Client per component (RSC by default); reach the backend through an existing or new `src/lib/*-api.ts` client; pull types from `@arenaquest/shared`.
 3. **Implementation** — strict TypeScript, semantic HTML, Tailwind utilities mapped to tokens. Loading and empty states are not optional. Mobile breakpoint is the baseline.
 4. **Tests** — component tests in `__tests__/` next to the component (Vitest + RTL). Cover the golden path, the empty state, and one error path. Run `make test-web` and `make lint-web` before closing.
